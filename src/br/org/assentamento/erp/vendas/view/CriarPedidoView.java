@@ -1,7 +1,7 @@
 package br.org.assentamento.erp.vendas.view;
 
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
@@ -86,33 +86,18 @@ public class CriarPedidoView extends JFrame {
     }
 
     private void adicionarSecaoProduto(JPanel formCard) {
-
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 6, 8);
-
-        formCard.add(criarHeader("Selecione o Produto"), gbc);
-
-        gbc.gridy = 3;
-        gbc.insets = new Insets(0, 8, 12, 8);
+        gbc.insets = new Insets(8, 8, 12, 8);
 
         String[] colunas = {"Produto", "Quantidade"};
-        Object[][] dados = {
-                {"Alface Crespa", ""},
-                {"Tomate Maduro", ""},
-                {"Melancia", ""},
-                {"Melancia", ""},
-                {"Melancia", ""},
-                {"Melancia", ""},
-                {"Melancia", ""}
-        };
 
         // Modelo que só permite edição na coluna "Quantidade"
-        DefaultTableModel model = new DefaultTableModel(dados, colunas) {
+        DefaultTableModel model = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == 1;
@@ -124,13 +109,113 @@ public class CriarPedidoView extends JFrame {
         tabela.setRowHeight(24); // linhas mais altas
         tabela.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14)); // cabeçalho maior
 
-        // Scroll
-        JScrollPane scrollPane = new JScrollPane(tabela);
-        scrollPane.setPreferredSize(new Dimension(500, 120)); // limita altura inicial
+        // Botão para adicionar produto
+        Color verdePadrao = new Color(0x6A, 0x6E, 0x2D);
 
+        JButton btnAddProduto = new JButton("Adicionar um produto");
+        btnAddProduto.setBackground(verdePadrao);
+        btnAddProduto.setForeground(Color.WHITE);
+        btnAddProduto.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btnAddProduto.setFocusPainted(false);
+        btnAddProduto.setBorder(BorderFactory.createEmptyBorder(8,12,8,12));
+        btnAddProduto.addActionListener(e -> abrirDialogAdicionarProduto(model));
+
+        // Primeiro adiciona o botão
+        formCard.add(btnAddProduto, gbc);
+
+        // Depois a tabela logo abaixo
+        gbc.gridy = 3;
+        JScrollPane scrollPane = new JScrollPane(tabela);
+        scrollPane.setPreferredSize(new Dimension(500, 120));
         formCard.add(scrollPane, gbc);
 
+        // Botão finalizar pedido no final da tela
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(20, 0, 0, 0);
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        JButton btnFinalizarPedido = new JButton("Finalizar Pedido");
+        btnFinalizarPedido.setBackground(verdePadrao);
+        btnFinalizarPedido.setForeground(Color.WHITE);
+        btnFinalizarPedido.setFont(new Font("SansSerif", Font.BOLD, 16));
+        btnFinalizarPedido.setFocusPainted(false);
+        btnFinalizarPedido.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+        formCard.add(btnFinalizarPedido, gbc);
     }
+
+
+    private void abrirDialogAdicionarProduto(DefaultTableModel model) {
+        try {
+            // Ativa Nimbus se disponível
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    SwingUtilities.updateComponentTreeUI(this);
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException ex) {
+            // se não tiver Nimbus, ignora
+        }
+
+        JDialog dialog = new JDialog(this, "Adicionar Produto", true);
+        dialog.setSize(420, 220);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        Font fontePadrao = new Font("SansSerif", Font.PLAIN, 14);
+        Font fonteNegrito = new Font("SansSerif", Font.BOLD, 14);
+        Color verdeEscuro = new Color(0x6A, 0x6E, 0x2D);
+
+        // Label e combo de produtos
+        gbc.gridx = 0; gbc.gridy = 0;
+        dialog.add(new JLabel("Produto:"), gbc);
+
+        JComboBox<String> comboProduto = new JComboBox<>(new String[]{
+            "Alface Crespa", "Tomate Maduro", "Melancia", "Cenoura", "Batata"
+        });
+        comboProduto.setFont(fontePadrao);
+        gbc.gridx = 1;
+        dialog.add(comboProduto, gbc);
+
+        // Label e campo quantidade
+        gbc.gridx = 0; gbc.gridy = 1;
+        dialog.add(new JLabel("Quantidade (kg):"), gbc);
+
+        JTextField txtQtd = new JTextField(10);
+        txtQtd.setFont(fontePadrao);
+        gbc.gridx = 1;
+        dialog.add(txtQtd, gbc);
+
+        // Botão confirmar
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
+        JButton btnOk = new JButton("Adicionar");
+        btnOk.setBackground(verdeEscuro);
+        btnOk.setForeground(Color.WHITE);
+        btnOk.setFont(fonteNegrito);
+        btnOk.setFocusPainted(false);
+        btnOk.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        btnOk.addActionListener(e -> {
+            String produto = (String) comboProduto.getSelectedItem();
+            String qtd = txtQtd.getText().trim();
+
+            if (produto != null && !qtd.isEmpty()) {
+                model.addRow(new Object[]{produto, qtd});
+                dialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Preencha todos os campos!");
+            }
+        });
+        dialog.add(btnOk, gbc);
+
+        dialog.setVisible(true);
+    }
+
 
     private void adicionarSecaoProdutor(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
