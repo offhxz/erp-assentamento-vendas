@@ -58,6 +58,7 @@ public class CriarPedidoView extends JFrame {
         adicionarSecaoProdutor(formCard);
         adicionarSecaoProduto(formCard);
 
+        // Adiciona o espaçador para empurrar o form para cima
         GridBagConstraints gbcSpacer = new GridBagConstraints();
         gbcSpacer.gridy = 4;
         gbcSpacer.weighty = 1.0;
@@ -67,7 +68,6 @@ public class CriarPedidoView extends JFrame {
         formCard.add(spacer, gbcSpacer);
 
         return formCard;
-        
     }
 
     private JPanel criarHeader(String texto){
@@ -102,13 +102,13 @@ public class CriarPedidoView extends JFrame {
 
         String[] colunas = {"Produto", "Quantidade"};
         Object[][] dados = {
-            {"Alface Crespa", ""},
-            {"Tomate Maduro", ""},
-            {"Melancia", ""},
-            {"Melancia", ""},
-            {"Melancia", ""},
-            {"Melancia", ""},
-            {"Melancia", ""}
+                {"Alface Crespa", ""},
+                {"Tomate Maduro", ""},
+                {"Melancia", ""},
+                {"Melancia", ""},
+                {"Melancia", ""},
+                {"Melancia", ""},
+                {"Melancia", ""}
         };
 
         // Modelo que só permite edição na coluna "Quantidade"
@@ -133,29 +133,27 @@ public class CriarPedidoView extends JFrame {
     }
 
     private void adicionarSecaoProdutor(JPanel formCard) {
-    GridBagConstraints gbc = new GridBagConstraints();
-    gbc.gridx = 0;
-    gbc.gridy = 0;
-    gbc.gridwidth = 2;
-    gbc.weightx = 1.0;
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.insets = new Insets(8, 8, 6, 8);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 6, 8);
 
-    formCard.add(criarHeader("Selecione produtor / associação"), gbc);
+        formCard.add(criarHeader("Selecione produtor / associação"), gbc);
 
-    gbc.gridy = 1;
-    gbc.insets = new Insets(0, 8, 12, 8);
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 8, 12, 8);
 
-    comboProdutor = new JComboBox<>(new String[] {
-        "Associação", "Fernando Silva", "Renato Cabral"
-    });
-    comboProdutor.setPrototypeDisplayValue("xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-    comboProdutor.setFont(new Font("SansSerif", Font.PLAIN, 14)); // aumenta fonte
+        comboProdutor = new JComboBox<>(new String[] {
+                "Associação", "Fernando Silva", "Renato Cabral"
+        });
+        comboProdutor.setPrototypeDisplayValue("xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        comboProdutor.setFont(new Font("SansSerif", Font.PLAIN, 14)); // aumenta fonte
 
-    formCard.add(comboProdutor, gbc);
-
+        formCard.add(comboProdutor, gbc);
     }
-
 
     private JPanel criarPainelLateral() {
 
@@ -180,7 +178,7 @@ public class CriarPedidoView extends JFrame {
             ImageIcon icon = new ImageIcon(url);
             Image scaled = icon.getImage().getScaledInstance(120,120, Image.SCALE_SMOOTH);
             lblLogo.setIcon(new ImageIcon(scaled));
-            lblLogo.setText("Logo");
+            // lblLogo.setText("Logo"); // Removido para não sobrepor a imagem
         } else {
             lblLogo.setText("Logo");
             lblLogo.setForeground(Color.WHITE);
