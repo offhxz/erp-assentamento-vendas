@@ -4,6 +4,10 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import org.jdatepicker.impl.JDatePickerImpl;
+import org.jdatepicker.impl.JDatePanelImpl;
+import org.jdatepicker.impl.UtilDateModel;
+
 
 
 public class CriarPedidoView extends JFrame {
@@ -57,12 +61,15 @@ public class CriarPedidoView extends JFrame {
 
         adicionarSecaoProdutor(formCard);
         adicionarSecaoProduto(formCard);
+        adicionarSecaoEntrega(formCard);
+        adicionarBotaoFinalizar(formCard);
 
         // Adiciona o espaçador para empurrar o form para cima
         GridBagConstraints gbcSpacer = new GridBagConstraints();
-        gbcSpacer.gridy = 4;
+        gbcSpacer.gridx = 0;
+        gbcSpacer.gridy = 7; 
         gbcSpacer.weighty = 1.0;
-        
+
         JPanel spacer = new JPanel();
         spacer.setOpaque(false);
         formCard.add(spacer, gbcSpacer);
@@ -96,7 +103,6 @@ public class CriarPedidoView extends JFrame {
 
         String[] colunas = {"Produto", "Quantidade"};
 
-        // Modelo que só permite edição na coluna "Quantidade"
         DefaultTableModel model = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -105,11 +111,10 @@ public class CriarPedidoView extends JFrame {
         };
 
         JTable tabela = new JTable(model);
-        tabela.setFont(new Font("SansSerif", Font.PLAIN, 14)); // aumenta fonte geral
-        tabela.setRowHeight(24); // linhas mais altas
-        tabela.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14)); // cabeçalho maior
+        tabela.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tabela.setRowHeight(24);
+        tabela.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
 
-        // Botão para adicionar produto
         Color verdePadrao = new Color(0x6A, 0x6E, 0x2D);
 
         JButton btnAddProduto = new JButton("Adicionar um produto");
@@ -120,45 +125,36 @@ public class CriarPedidoView extends JFrame {
         btnAddProduto.setBorder(BorderFactory.createEmptyBorder(8,12,8,12));
         btnAddProduto.addActionListener(e -> abrirDialogAdicionarProduto(model));
 
-        // Primeiro adiciona o botão
         formCard.add(btnAddProduto, gbc);
 
-        // Depois a tabela logo abaixo
         gbc.gridy = 3;
         JScrollPane scrollPane = new JScrollPane(tabela);
         scrollPane.setPreferredSize(new Dimension(500, 120));
         formCard.add(scrollPane, gbc);
+    }
 
-        // Botão finalizar pedido no final da tela
-        gbc.gridy = 4;
-        gbc.gridwidth = 1;
-        gbc.insets = new Insets(20, 0, 0, 0);
-        gbc.anchor = GridBagConstraints.CENTER;
+    private void adicionarBotaoFinalizar(JPanel formCard) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(12, 8, 12, 8); // mesmo espaçamento dos outros botões
+        gbc.fill = GridBagConstraints.HORIZONTAL; // igual aos outros
+
+        Color verdePadrao = new Color(0x6A, 0x6E, 0x2D);
 
         JButton btnFinalizarPedido = new JButton("Finalizar Pedido");
         btnFinalizarPedido.setBackground(verdePadrao);
         btnFinalizarPedido.setForeground(Color.WHITE);
-        btnFinalizarPedido.setFont(new Font("SansSerif", Font.BOLD, 16));
+        btnFinalizarPedido.setFont(new Font("SansSerif", Font.BOLD, 14)); // mesma fonte dos outros
         btnFinalizarPedido.setFocusPainted(false);
-        btnFinalizarPedido.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+        btnFinalizarPedido.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12)); // mesma borda
+
         formCard.add(btnFinalizarPedido, gbc);
     }
 
 
     private void abrirDialogAdicionarProduto(DefaultTableModel model) {
-        try {
-            // Ativa Nimbus se disponível
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    SwingUtilities.updateComponentTreeUI(this);
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException ex) {
-            // se não tiver Nimbus, ignora
-        }
-
         JDialog dialog = new JDialog(this, "Adicionar Produto", true);
         dialog.setSize(420, 220);
         dialog.setLocationRelativeTo(this);
@@ -275,10 +271,80 @@ public class CriarPedidoView extends JFrame {
 
         side.add(centerWrap, BorderLayout.SOUTH);
         return side;
-
     }
 
+    private void adicionarSecaoEntrega(JPanel formCard) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 4; // posição da seção
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 12, 8);
+
+        formCard.add(criarHeader("Selecione a forma de entrega"), gbc);
+
+        String[] opcoesEntrega = {"Entrega padrão (5 dias úteis)", "Escolher data de entrega"};
+        JComboBox<String> comboEntrega = new JComboBox<>(opcoesEntrega);
+        comboEntrega.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        comboEntrega.setSelectedIndex(0);
+
+        gbc.gridy = 5;
+        formCard.add(comboEntrega, gbc);
+
+        // Cria o datePicker, mas não adiciona ainda
+        JDatePickerImpl datePicker = criarDatePicker();
+        datePicker.setPreferredSize(new Dimension(200, 30));
+
+        comboEntrega.addActionListener(e -> {
+            if ("Escolher data de entrega".equals(comboEntrega.getSelectedItem())) {
+                // Adiciona o datePicker se ainda não estiver adicionado
+                if (datePicker.getParent() == null) {
+                    gbc.gridy = 6;
+                    formCard.add(datePicker, gbc);
+                    formCard.revalidate();
+                    formCard.repaint();
+                }
+            } else {
+                // Remove o datePicker se estiver
+                if (datePicker.getParent() != null) {
+                    formCard.remove(datePicker);
+                    formCard.revalidate();
+                    formCard.repaint();
+                }
+            }
+        });
+    }
+
+    private JDatePickerImpl criarDatePicker() {
+        UtilDateModel model = new UtilDateModel();
+        model.setDate(2025, 8, 1);
+        model.setSelected(true);
+
+        java.util.Properties p = new java.util.Properties();
+        JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
+        JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
+
+        datePicker.setPreferredSize(new Dimension(200, 30));
+        return datePicker;
+    }
+
+
+
+
     public static void main(String[] args){
+        // Tenta aplicar o Nimbus antes de criar qualquer JFrame
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // se não encontrar Nimbus, ignora
+            System.out.println("Nimbus não disponível, usando padrão.");
+        }
         SwingUtilities.invokeLater(() -> {
             new CriarPedidoView().setVisible(true);
         });
