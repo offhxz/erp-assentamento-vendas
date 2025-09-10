@@ -1,0 +1,14 @@
+# Arquivos compilados do Java
+/bin/
+/build/
+*.class
+*.jar
+*.war
+*.ear
+
+# Arquivos de IDEs
+.project
+.classpath
+.settings/
+*.iml
+.idea/
