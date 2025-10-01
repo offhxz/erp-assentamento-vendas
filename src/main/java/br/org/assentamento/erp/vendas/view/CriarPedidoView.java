@@ -1,8 +1,6 @@
-package br.org.assentamento.erp.vendas.view.produtor;
+package br.org.assentamento.erp.vendas.view;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.ParseException;
@@ -39,16 +37,12 @@ class DateLabelFormatter extends DateComponentFormatter {
     }
 }
 
+public class CriarPedidoView extends BaseView {
 
-public class CriarPedidoView extends JFrame {
-
-    // --- COR CONSTANTE DEFINIDA GLOBALMENTE ---
     private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
     private static final Color VERMELHO_ESCURO = new Color(0xCC, 0x00, 0x00); 
 
-    // Variável para a nova JComboBox
     private JComboBox<String> comboProjeto; 
-    
     private JComboBox<String> comboProdutor; 
     private JComboBox<String> comboProduto; 
     private JTextField txtQuantidade; 
@@ -58,7 +52,7 @@ public class CriarPedidoView extends JFrame {
     private JTable tabelaProdutos; 
 
     
-    // Dados Mock para Produtos e Preços (R$ per kg) - atualizar com o banco
+    // Dados Mock para Produtos e Preços (R$ per kg)
     private static final Map<String, Double> PRODUTOS_PRECOS = new HashMap<>();
     static {
         PRODUTOS_PRECOS.put("Alface Crespa", 5.50);
@@ -68,7 +62,7 @@ public class CriarPedidoView extends JFrame {
         PRODUTOS_PRECOS.put("Batata", 6.00);
     }
 
-    // Dados Mock para Projetos (Novo)
+    // Dados Mock para Projetos
     private static final String[] PROJETOS_MOCK = {
         "Projeto Raízes Fortes",
         "Projeto Hortaliças Saborosas",
@@ -77,43 +71,30 @@ public class CriarPedidoView extends JFrame {
 
 
     public CriarPedidoView(){
-        // Configurações básicas da janela
-        setTitle("Criar Pedido");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(800, 600);
-        setExtendedState(MAXIMIZED_BOTH);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
-
-        // Adiciona painéis principais
-        add(criarPainelLateral(), BorderLayout.WEST);
+        // 1. CHAMA O CONSTRUTOR DA BASEVIEW
+        super("Criar Pedido"); 
+        
+        // 2. ADICIONA O CONTEÚDO PRINCIPAL 
         add(criarContentPanel(), BorderLayout.CENTER);
     }
 
     private JPanel criarContentPanel() {
         // Painel central (Barra de Título + Formulário)
         JPanel content = new JPanel(new BorderLayout());
-        content.add(criarTitleBar(), BorderLayout.NORTH);
+        
+        // Usa o método criarTitleBar() da BaseView
+        content.add(criarTitleBar("Criar Pedido"), BorderLayout.NORTH); 
+        
         content.add(criarFormCard(), BorderLayout.CENTER);
         return content;
     }
 
-    private JComponent criarTitleBar() {
-        // Barra superior com o título principal
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(VERDE_PADRAO); 
-        bar.setBorder(new EmptyBorder(12, 24, 12, 24));
-        JLabel titulo = new JLabel("Criar Pedido", SwingConstants.CENTER);
-        titulo.setForeground(Color.WHITE);
-        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 24f));
-        bar.add(titulo, BorderLayout.CENTER);
-        return bar;
-    }
 
     private JPanel criarFormCard(){
         // Painel do formulário usando GridBagLayout para alinhamento
         JPanel formCard = new JPanel(new GridBagLayout());
-        formCard.setBackground(new Color(0xE9, 0xE9, 0xE9));
+        // Usa CONTENT_BG da BaseView (presumindo que seja E9E9E9)
+        formCard.setBackground(CONTENT_BG); 
         formCard.setBorder(new EmptyBorder(24, 24, 24, 24));
         
         // Adiciona a nova seção de Projeto (posicionada antes dos produtos)
@@ -128,28 +109,16 @@ public class CriarPedidoView extends JFrame {
         // Espaçador para empurrar o conteúdo para o topo
         GridBagConstraints gbcSpacer = new GridBagConstraints();
         gbcSpacer.gridx = 0;
-        gbcSpacer.gridy = 10; // Linha ajustada por conta do novo elemento
-        gbcSpacer.weighty = 1.0; // Pega todo o espaço vertical restante
+        gbcSpacer.gridy = 10; 
+        gbcSpacer.weighty = 1.0; 
         JPanel spacer = new JPanel();
         spacer.setOpaque(false);
         formCard.add(spacer, gbcSpacer);
 
         return formCard;
     }
-
-    private JPanel criarHeader(String texto){
-        // Cria um cabeçalho (Header) padrão para as seções
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(VERDE_PADRAO); 
-        p.setBorder(new EmptyBorder(8, 12, 8, 12));
-        JLabel l = new JLabel(texto, SwingConstants.CENTER);
-        l.setForeground(Color.WHITE);
-        l.setFont(l.getFont().deriveFont(Font.BOLD, 14f));
-        p.add(l, BorderLayout.CENTER);
-        return p;
-    }
-
-    // --- MÉTODOS DE LÓGICA DE PRODUTOS/PREÇOS (sem alteração) ---
+    
+    // --- MÉTODOS DE LÓGICA DE PRODUTOS/PREÇOS ---
     private void updateProductPrice() {
         String selectedProduct = (String) comboProduto.getSelectedItem();
         Double price = PRODUTOS_PRECOS.getOrDefault(selectedProduct, 0.0);
@@ -159,7 +128,6 @@ public class CriarPedidoView extends JFrame {
     private void updateGrandTotal() {
         double grandTotal = 0.0;
         for (int i = 0; i < produtosTableModel.getRowCount(); i++) {
-            // Pega o valor da coluna "Total (R$)" (índice 3), remove R$ e substitui vírgula por ponto para parsear
             String totalStr = produtosTableModel.getValueAt(i, 3).toString().replace("R$ ", "").replace(',', '.');
             try {
                 grandTotal += Double.parseDouble(totalStr);
@@ -180,16 +148,14 @@ public class CriarPedidoView extends JFrame {
                 double unitPrice = PRODUTOS_PRECOS.getOrDefault(produto, 0.0);
                 double total = quantity * unitPrice;
                 
-                // Adiciona uma nova linha com os dados
                 produtosTableModel.addRow(new Object[]{
                     produto, 
                     String.format("%.2f", quantity), 
                     String.format("R$ %.2f", unitPrice), 
                     String.format("R$ %.2f", total),
-                    "X" // Texto simples para a coluna de ação
+                    "X" 
                 });
                 
-                // Limpa inputs e atualiza o total
                 txtQuantidade.setText("");
                 comboProduto.setSelectedIndex(0);
                 updateProductPrice();
@@ -204,24 +170,22 @@ public class CriarPedidoView extends JFrame {
     // --- FIM DOS MÉTODOS DE LÓGICA DE PRODUTOS/PREÇOS ---
 
 
-    // --- NOVO MÉTODO: ADICIONAR SEÇÃO PROJETO ---
+    // --- ADICIONAR SEÇÃO PROJETO ---
     private void adicionarSecaoProjeto(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0; // Posição no topo
+        gbc.gridx = 0; gbc.gridy = 0; 
         gbc.gridwidth = 2; gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 6, 8); // Ajuste de espaçamento
+        gbc.insets = new Insets(8, 8, 6, 8); 
 
-        // Header
         formCard.add(criarHeader("Selecione o Projeto"), gbc);
 
-        // ComboBox de Seleção
         comboProjeto = new JComboBox<>(PROJETOS_MOCK);
         comboProjeto.setFont(new Font("SansSerif", Font.PLAIN, 14));
         comboProjeto.setSelectedIndex(0);
 
-        gbc.gridy = 1; // Próxima linha
-        gbc.insets = new Insets(0, 8, 20, 8); // Ajuste de espaçamento
+        gbc.gridy = 1; 
+        gbc.insets = new Insets(0, 8, 20, 8); 
 
         formCard.add(comboProjeto, gbc);
     }
@@ -231,7 +195,6 @@ public class CriarPedidoView extends JFrame {
     // --- ADICIONAR SEÇÃO PRODUTO (JTable simplificada) ---
     private void adicionarSecaoProduto(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
-        // A section de produtos começa na linha 2, após o Projeto
         gbc.gridx = 0; gbc.gridy = 2; 
         gbc.gridwidth = 2; gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -241,10 +204,9 @@ public class CriarPedidoView extends JFrame {
         
         // Painel de Input de Produto/Quantidade
         JPanel painelProdutoInput = new JPanel(new GridBagLayout());
-        painelProdutoInput.setBackground(new Color(0xE9, 0xE9, 0xE9));
+        painelProdutoInput.setBackground(CONTENT_BG); // Usa CONTENT_BG da BaseView
         painelProdutoInput.setBorder(new EmptyBorder(10, 0, 0, 0)); 
         
-        // Configuração dos ComboBox, JTextField e Botão
         GridBagConstraints gbcInput = new GridBagConstraints();
         gbcInput.insets = new Insets(0, 5, 0, 5); gbcInput.anchor = GridBagConstraints.WEST;
         
@@ -285,23 +247,19 @@ public class CriarPedidoView extends JFrame {
         gbcInput.fill = GridBagConstraints.NONE; gbcInput.anchor = GridBagConstraints.EAST;
         gbcInput.insets = new Insets(0, 5, 0, 0); painelProdutoInput.add(btnAdd, gbcInput);
         
-        // Atualiza gbc.gridy para a linha dos inputs
         gbc.gridy = 3; gbc.insets = new Insets(0, 8, 4, 8); 
         formCard.add(painelProdutoInput, gbc);
 
         // --- Configuração da Tabela (JTable) ---
         String[] colunas = {"Produto", "Quantidade (kg)", "Valor Unit. (R$)", "Total (R$)", "Ação"}; 
         
-        // Cria o modelo da tabela
         produtosTableModel = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Nenhuma célula é editável, pois a remoção será por clique
                 return false; 
             }
             @Override
             public Class<?> getColumnClass(int column) {
-                // Define a última coluna (Ação) como JButton.class para usar o renderer de botão.
                 if (column == 4) return JButton.class;
                 return String.class;
             }
@@ -323,7 +281,6 @@ public class CriarPedidoView extends JFrame {
             return button;
         });
 
-        // Ajusta a largura da coluna 'Ação'
         tabelaProdutos.getColumnModel().getColumn(4).setMaxWidth(80); 
         tabelaProdutos.getColumnModel().getColumn(4).setMinWidth(80);
         
@@ -334,13 +291,8 @@ public class CriarPedidoView extends JFrame {
                 int column = tabelaProdutos.columnAtPoint(e.getPoint());
                 int row = tabelaProdutos.rowAtPoint(e.getPoint());
                 
-                // Mapeia a coluna 4 ("Ação")
                 if (column == tabelaProdutos.getColumnModel().getColumnIndex("Ação") && row >= 0) {
-                    
-                    // Remove a linha do modelo
                     produtosTableModel.removeRow(row);
-                    
-                    // Recalcula o total
                     updateGrandTotal();
                 }
             }
@@ -350,13 +302,12 @@ public class CriarPedidoView extends JFrame {
         JPanel painelTabelaTotal = new JPanel(new BorderLayout());
         JScrollPane scrollPane = new JScrollPane(tabelaProdutos);
         
-        // Define a altura fixa para a área da tabela (permite o scroll)
         scrollPane.setPreferredSize(new Dimension(500, 150)); 
         painelTabelaTotal.add(scrollPane, BorderLayout.CENTER);
         
         // Painel Total (R$ 0,00)
         JPanel painelTotal = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        painelTotal.setBackground(new Color(0xE9, 0xE9, 0xE9));
+        painelTotal.setBackground(CONTENT_BG); // Usa CONTENT_BG da BaseView
         JLabel lblTotalCompra = new JLabel("Total da compra: ");
         lblTotalCompra.setFont(new Font("SansSerif", Font.BOLD, 16));
         lblTotalCompra.setForeground(VERDE_PADRAO); 
@@ -370,7 +321,7 @@ public class CriarPedidoView extends JFrame {
         
         painelTabelaTotal.add(painelTotal, BorderLayout.SOUTH);
         
-        gbc.gridy = 4; // Atualiza gbc.gridy para a linha da tabela
+        gbc.gridy = 4; 
         gbc.insets = new Insets(0, 8, 12, 8); 
         formCard.add(painelTabelaTotal, gbc);
         
@@ -387,11 +338,12 @@ public class CriarPedidoView extends JFrame {
     // --- ADICIONAR SEÇÃO ENTREGA (Com espaçamento ajustado) ---
     private void adicionarSecaoEntrega(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 5; // Posição atualizada
+        gbc.gridx = 0; gbc.gridy = 5; 
         gbc.gridwidth = 2; gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(20, 8, 6, 8); 
 
+        // Usa o método criarHeader da BaseView
         formCard.add(criarHeader("Selecione a data de entrega"), gbc); 
 
         JDatePickerImpl datePicker = criarDatePicker();
@@ -408,11 +360,12 @@ public class CriarPedidoView extends JFrame {
     // --- ADICIONAR SEÇÃO PAGAMENTO (Com espaçamento ajustado) ---
     private void adicionarSecaoPagamento(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 7; // Posição atualizada
+        gbc.gridx = 0; gbc.gridy = 7; 
         gbc.gridwidth = 2; gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(8, 8, 6, 8);
 
+        // Usa o método criarHeader da BaseView
         formCard.add(criarHeader("Selecione a forma de pagamento"), gbc);
 
         String[] opcoesPagamento = {"Dinheiro", "Pix", "Cartão"};
@@ -420,7 +373,7 @@ public class CriarPedidoView extends JFrame {
         comboPagamento.setFont(new Font("SansSerif", Font.PLAIN, 14));
         comboPagamento.setSelectedIndex(0);
 
-        gbc.gridy = 8; // Posição atualizada
+        gbc.gridy = 8; 
         gbc.insets = new Insets(0, 8, 20, 8); 
 
         formCard.add(comboPagamento, gbc);
@@ -431,7 +384,7 @@ public class CriarPedidoView extends JFrame {
     // --- ADICIONAR BOTÃO FINALIZAR ---
     private void adicionarBotaoFinalizar(JPanel formCard) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 9; // Posição atualizada
+        gbc.gridx = 0; gbc.gridy = 9; 
         gbc.gridwidth = 2;
         gbc.insets = new Insets(12, 8, 12, 8); 
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -446,47 +399,8 @@ public class CriarPedidoView extends JFrame {
         formCard.add(btnFinalizarPedido, gbc);
     }
     // --- FIM ADICIONAR BOTÃO FINALIZAR ---
-
-    private JPanel criarPainelLateral() {
-        // Painel de navegação lateral
-        JPanel side = new JPanel(new BorderLayout());
-        side.setBackground(new Color(0x2F, 0x33, 0x20));
-        side.setPreferredSize(new Dimension(240, 0));
-        side.setBorder(new javax.swing.border.EmptyBorder(20, 12, 20, 12));
-
-        JButton btnMenu = new JButton("Menu Inicial");
-        btnMenu.setFocusPainted(false);
-        btnMenu.setBackground(Color.WHITE);
-        btnMenu.setForeground(Color.DARK_GRAY);
-        btnMenu.setBorder(BorderFactory.createEmptyBorder(8,12,8,12));
-        side.add(btnMenu, BorderLayout.NORTH);
-
-        JLabel lblLogo = new JLabel();
-        lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
-        lblLogo.setVerticalAlignment(SwingConstants.CENTER);
-
-        // Tenta carregar ícone, caso contrário exibe texto
-        java.net.URL url = getClass().getResource("/icons/logo.png");
-        if (url != null) {
-            ImageIcon icon = new ImageIcon(url);
-            Image scaled = icon.getImage().getScaledInstance(120,120, Image.SCALE_SMOOTH);
-            lblLogo.setIcon(new ImageIcon(scaled));
-        } else {
-            lblLogo.setText("Logo");
-            lblLogo.setForeground(Color.WHITE);
-        }
-
-        JPanel centerWrap = new JPanel(new GridBagLayout());
-        centerWrap.setOpaque(false);
-        centerWrap.add(lblLogo);
-
-        side.add(centerWrap, BorderLayout.SOUTH);
-        return side;
-    }
-
     
     private JDatePickerImpl criarDatePicker() {
-        // Inicializa e customiza o componente de seleção de data (Calendário)
         UtilDateModel model = new UtilDateModel();
         
         Calendar cal = Calendar.getInstance();
