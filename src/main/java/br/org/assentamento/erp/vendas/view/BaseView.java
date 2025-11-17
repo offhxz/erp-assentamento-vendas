@@ -17,10 +17,7 @@ public class BaseView extends JFrame {
     // Lista de botões que estarão sempre visíveis
     private static final String BOTAO_MENU = "Menu Inicial";
     private static final String BOTAO_CRIAR_PEDIDO = "Criar Pedido";
-<<<<<<< HEAD
     private static final String BOTAO_CRIAR_PROJETO = "Criar Projeto";
-=======
->>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
     private static final String BOTAO_CONSULTAR_PEDIDO = "Consultar Pedido";
     
     // --- Interface para Navegação (Para simular o redirecionamento de tela) ---
@@ -79,13 +76,10 @@ public class BaseView extends JFrame {
                         case BOTAO_CRIAR_PEDIDO: 
                             nextScreen = new CriarPedidoView(); 
                             break;
-<<<<<<< HEAD
 
                         case BOTAO_CRIAR_PROJETO: 
                             nextScreen = new CriarProjetoView(); 
                             break;
-=======
->>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
                             
                         case BOTAO_CONSULTAR_PEDIDO:
                             nextScreen = new ConsultaPedidosView();
@@ -135,11 +129,8 @@ public class BaseView extends JFrame {
         buttonPanel.add(Box.createRigidArea(new Dimension(0, 8)));
         buttonPanel.add(criarBotaoLateral(BOTAO_CRIAR_PEDIDO));
         buttonPanel.add(Box.createRigidArea(new Dimension(0, 8)));
-<<<<<<< HEAD
         buttonPanel.add(criarBotaoLateral(BOTAO_CRIAR_PROJETO));
         buttonPanel.add(Box.createRigidArea(new Dimension(0, 8)));
-=======
->>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         buttonPanel.add(criarBotaoLateral(BOTAO_CONSULTAR_PEDIDO));
         
 
