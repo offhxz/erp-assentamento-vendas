@@ -1,4 +1,4 @@
-package br.org.assentamento.erp.vendas.view;
+package br.edu.ifsp.hto.cooperativa.vendas.view;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -6,7 +6,6 @@ import java.awt.event.MouseEvent;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Properties;
 import java.util.Map;
 import java.util.HashMap;
 import javax.swing.*;
@@ -42,8 +41,7 @@ public class CriarPedidoView extends BaseView {
     private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
     private static final Color VERMELHO_ESCURO = new Color(0xCC, 0x00, 0x00); 
 
-    private JComboBox<String> comboProjeto; 
-    private JComboBox<String> comboProdutor; 
+    private JComboBox<String> comboProjeto;
     private JComboBox<String> comboProduto; 
     private JTextField txtQuantidade; 
     private JLabel lblValorUnitario; 
@@ -396,6 +394,27 @@ public class CriarPedidoView extends BaseView {
         btnFinalizarPedido.setFocusPainted(false);
         btnFinalizarPedido.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
         
+        btnFinalizarPedido.addActionListener(e -> {
+            if (produtosTableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "Adicione pelo menos um produto ao pedido!", "Atenção", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String projetoSelecionado = (String) comboProjeto.getSelectedItem();
+            String totalPedido = lblTotalItem.getText();
+            
+            JOptionPane.showMessageDialog(this, 
+                "Pedido Finalizado com Sucesso!\n\n" +
+                "Projeto: " + projetoSelecionado + "\n" +
+                "Total: " + totalPedido + "\n\n" +
+                "(Aqui chamaremos o Controller para gravar no Postgres)", 
+                "Sucesso", 
+                JOptionPane.INFORMATION_MESSAGE);
+
+            produtosTableModel.setRowCount(0);
+            updateGrandTotal();
+        });
+
         formCard.add(btnFinalizarPedido, gbc);
     }
     // --- FIM ADICIONAR BOTÃO FINALIZAR ---

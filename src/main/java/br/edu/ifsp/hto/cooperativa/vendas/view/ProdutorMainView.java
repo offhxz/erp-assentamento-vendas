@@ -1,4 +1,4 @@
-package br.org.assentamento.erp.vendas.view;
+package br.edu.ifsp.hto.cooperativa.vendas.view;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -9,7 +9,6 @@ import javax.swing.table.DefaultTableModel;
 
 public class ProdutorMainView extends BaseView {
 
-    private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
     private static final Color CONTENT_BG = new Color(0xE9, 0xE9, 0xE9);
     
     // --- COMPONENTES DA TELA ---

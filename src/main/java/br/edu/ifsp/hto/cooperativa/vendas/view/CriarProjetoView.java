@@ -1,62 +1,47 @@
-package br.org.assentamento.erp.vendas.view;
+package br.edu.ifsp.hto.cooperativa.vendas.view;
 
+import br.edu.ifsp.hto.cooperativa.vendas.controller.ProjetoController;
 import java.awt.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.text.MaskFormatter;
 
-// Necessário para o JDatePicker (Certifique-se de que a biblioteca JDatePicker está no seu classpath)
 import org.jdatepicker.impl.JDatePickerImpl;
 import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.UtilDateModel;
 import org.jdatepicker.impl.DateComponentFormatter;
 
-// Classe Mock (simulada) para formatar a data (Necessária para o JDatePicker)
+// --- FORMATTER DE DATA (MANTIDO IGUAL) ---
 class DateLabelFormatter extends DateComponentFormatter {
     private String datePattern = "dd/MM/yyyy";
     private SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
-
     @Override
-    public Object stringToValue(String text) throws ParseException {
-        return dateFormatter.parseObject(text);
-    }
-
+    public Object stringToValue(String text) throws ParseException { return dateFormatter.parseObject(text); }
     @Override
     public String valueToString(Object value) throws ParseException {
-        if (value != null) {
-            Calendar cal = (Calendar) value;
-            return dateFormatter.format(cal.getTime());
-        }
+        if (value != null) { Calendar cal = (Calendar) value; return dateFormatter.format(cal.getTime()); }
         return "";
     }
 }
 
 public class CriarProjetoView extends BaseView {
 
-    // --- COR CONSTANTE DEFINIDA GLOBALMENTE ---
     private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
-    private static final Color LATERAL_BG = new Color(0x2F, 0x33, 0x20); 
     private static final Color FORM_BG = new Color(0xE9, 0xE9, 0xE9);
     private static final Color CAMPO_BG = Color.WHITE;
     
-    // --- CAMPOS DE INPUT OBRIGATÓRIOS ---
+    // --- CAMPOS DE INPUT (REMOVIDOS EMPRESA E CNPJ) ---
     private JTextField txtNomeProjeto;
-    private JTextField txtNomeEmpresaOrgao;
-    private JFormattedTextField txtCNPJ;
     private JDatePickerImpl datePickerInicio;
     private JDatePickerImpl datePickerFim;
     private JTextField txtOrcamentoTotal;
     
-    // Construtor Simples
     public CriarProjetoView(){
-        // 1. CHAMA O CONSTRUTOR DA BASEVIEW
         super("Criar Pedido"); 
-        
-        // 2. ADICIONA O CONTEÚDO PRINCIPAL 
         add(criarContentPanel(), BorderLayout.CENTER);
     }
 
@@ -85,7 +70,7 @@ public class CriarProjetoView extends BaseView {
         
         int currentRow = 0; 
 
-        // --- SEÇÃO DADOS BÁSICOS ---
+        // --- SEÇÃO DADOS BÁSICOS (AGORA SÓ TEM O NOME) ---
         currentRow = adicionarSecaoDadosBasicos(formCard, currentRow);
         
         // --- SEÇÃO DATAS E VALORES ---
@@ -95,18 +80,14 @@ public class CriarProjetoView extends BaseView {
         currentRow = adicionarBotaoFinalizar(formCard, currentRow); 
 
         GridBagConstraints gbcSpacer = new GridBagConstraints();
-        gbcSpacer.gridx = 0;
-        gbcSpacer.gridy = currentRow; 
+        gbcSpacer.gridx = 0; gbcSpacer.gridy = currentRow; 
         gbcSpacer.weighty = 1.0; 
-        JPanel spacer = new JPanel();
-        spacer.setOpaque(false);
-        formCard.add(spacer, gbcSpacer);
+        formCard.add(new JPanel(){{setOpaque(false);}}, gbcSpacer);
 
         return formCard;
     }
     
-    // --- FUNÇÃO PARA CRIAR INPUT COM ESTILO SIMPLES ---
-    private JComponent criarInputSimples(JTextField field, String labelText, boolean isMasked) {
+    private JComponent criarInputSimples(JTextField field, String labelText) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
         
@@ -121,18 +102,11 @@ public class CriarProjetoView extends BaseView {
             BorderFactory.createLineBorder(Color.LIGHT_GRAY.darker(), 1), 
             new EmptyBorder(6, 8, 6, 8)
         ));
-        
-        if(isMasked) {
-             JFormattedTextField maskedField = (JFormattedTextField) field;
-             panel.add(maskedField, BorderLayout.CENTER);
-        } else {
-             panel.add(field, BorderLayout.CENTER);
-        }
-
+        panel.add(field, BorderLayout.CENTER);
         return panel;
     }
     
-    /** Adiciona a seção de Nome, Empresa/Órgão e CNPJ. */
+    // --- SEÇÃO DADOS BÁSICOS (SIMPLIFICADA) ---
     private int adicionarSecaoDadosBasicos(JPanel formCard, int startRow) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = startRow; 
@@ -140,34 +114,20 @@ public class CriarProjetoView extends BaseView {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(12, 8, 6, 8); 
         
-        formCard.add(criarHeader("Dados Básicos do Projeto"), gbc);
+        formCard.add(criarHeader("Dados do Projeto"), gbc);
         
         // 1. Nome do Projeto
         txtNomeProjeto = new JTextField(20);
         gbc.gridy = ++startRow;
-        gbc.insets = new Insets(0, 8, 8, 8);
-        formCard.add(criarInputSimples(txtNomeProjeto, "Nome do Projeto *", false), gbc);
+        gbc.insets = new Insets(0, 8, 20, 8); // Mais espaço embaixo pois removemos os outros campos
+        formCard.add(criarInputSimples(txtNomeProjeto, "Nome do Projeto *"), gbc);
 
-        // 2. Nome da Empresa/Órgão Público
-        txtNomeEmpresaOrgao = new JTextField(20);
-        gbc.gridy = ++startRow;
-        formCard.add(criarInputSimples(txtNomeEmpresaOrgao, "Empresa ou Órgão Público *", false), gbc);
-
-        // 3. CNPJ (com máscara)
-        try {
-            MaskFormatter mf = new MaskFormatter("##.###.###/####-##");
-            txtCNPJ = new JFormattedTextField(mf);
-        } catch (ParseException e) {
-            txtCNPJ = new JFormattedTextField();
-        }
-        gbc.gridy = ++startRow;
-        gbc.insets = new Insets(0, 8, 20, 8);
-        formCard.add(criarInputSimples(txtCNPJ, "CNPJ *", true), gbc);
+        // REMOVIDO: Empresa e CNPJ
         
         return ++startRow;
     }
     
-    /** Adiciona a seção de Datas e Orçamento. */
+    // --- SEÇÃO DATAS E VALORES (MANTIDA) ---
     private int adicionarSecaoDatasValores(JPanel formCard, int startRow) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = startRow; 
@@ -177,85 +137,59 @@ public class CriarProjetoView extends BaseView {
         
         formCard.add(criarHeader("Datas e Orçamento"), gbc);
         
-        // Container para alinhamento de 2 campos na mesma linha (Data Início/Fim)
         JPanel painelDatas = new JPanel(new GridBagLayout());
         painelDatas.setOpaque(false);
         GridBagConstraints gbcDatas = new GridBagConstraints();
         gbcDatas.fill = GridBagConstraints.HORIZONTAL;
         gbcDatas.insets = new Insets(0, 0, 0, 8);
         
-        // 1. Data Início (JDatePicker)
+        // Data Início
         JPanel wrapInicio = new JPanel(new BorderLayout());
         wrapInicio.setOpaque(false);
         wrapInicio.add(new JLabel("Início *") {{ 
-            setFont(new Font("SansSerif", Font.BOLD, 12)); 
-            setForeground(Color.GRAY.darker()); 
+            setFont(new Font("SansSerif", Font.BOLD, 12)); setForeground(Color.GRAY.darker()); 
         }}, BorderLayout.NORTH);
         datePickerInicio = criarDatePicker();
         wrapInicio.add(datePickerInicio, BorderLayout.CENTER);
-        
         gbcDatas.gridx = 0; gbcDatas.weightx = 0.5;
         painelDatas.add(wrapInicio, gbcDatas);
 
-        // 2. Data Fim (JDatePicker)
+        // Data Fim
         JPanel wrapFim = new JPanel(new BorderLayout());
         wrapFim.setOpaque(false);
         wrapFim.add(new JLabel("Fim *") {{ 
-            setFont(new Font("SansSerif", Font.BOLD, 12)); 
-            setForeground(Color.GRAY.darker()); 
+            setFont(new Font("SansSerif", Font.BOLD, 12)); setForeground(Color.GRAY.darker()); 
         }}, BorderLayout.NORTH);
         datePickerFim = criarDatePicker();
         wrapFim.add(datePickerFim, BorderLayout.CENTER);
-        
-        gbcDatas.gridx = 1; gbcDatas.weightx = 0.5;
-        gbcDatas.insets = new Insets(0, 0, 0, 0); 
+        gbcDatas.gridx = 1; gbcDatas.weightx = 0.5; gbcDatas.insets = new Insets(0, 0, 0, 0); 
         painelDatas.add(wrapFim, gbcDatas);
 
         gbc.gridy = ++startRow;
         gbc.insets = new Insets(0, 8, 8, 8);
         formCard.add(painelDatas, gbc);
         
-        // 3. Orçamento Total
+        // Orçamento
         txtOrcamentoTotal = new JTextField(15);
-        
         gbc.gridy = ++startRow;
         gbc.insets = new Insets(0, 8, 20, 8);
-        formCard.add(criarInputSimples(txtOrcamentoTotal, "Orçamento Total (R$) *", false), gbc);
+        formCard.add(criarInputSimples(txtOrcamentoTotal, "Orçamento Total (R$) *"), gbc);
         
         return ++startRow;
     }
     
-    // --- MÉTODO AUXILIAR PARA CRIAR O JDATEPICKER ---
     private JDatePickerImpl criarDatePicker() {
         UtilDateModel model = new UtilDateModel();
-        
         Calendar cal = Calendar.getInstance();
         model.setDate(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
         model.setSelected(true);
-
-        java.util.Properties p = new Properties(); 
-        
-        JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
+        JDatePanelImpl datePanel = new JDatePanelImpl(model, new Properties());
         JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-
-        // Estilo do campo de texto do JDatePicker
-        JTextField dateField = datePicker.getJFormattedTextField();
-        dateField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        dateField.setBackground(CAMPO_BG);
-        dateField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY.darker(), 1), 
-            new EmptyBorder(6, 8, 6, 8)
-        ));
-        
-        JButton calendarButton = (JButton) datePicker.getComponent(1);
-        calendarButton.setFocusPainted(false);
-        datePicker.setBorder(null);
-
+        // Estilização básica do datepicker...
         return datePicker;
     }
 
-
-    /** Adiciona o botão de Finalizar. */
+    // --- BOTÃO FINALIZAR (ATUALIZADO) ---
     private int adicionarBotaoFinalizar(JPanel formCard, int startRow) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = startRow; 
@@ -263,36 +197,29 @@ public class CriarProjetoView extends BaseView {
         gbc.insets = new Insets(12, 8, 12, 8); 
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        JPanel faixa = new JPanel(new BorderLayout());
-        faixa.setOpaque(false);
-        
-        JButton btnFinalizarProjeto = new JButton("Criar Projeto");
+        JButton btnFinalizarProjeto = new JButton("Salvar Projeto");
         btnFinalizarProjeto.setBackground(VERDE_PADRAO); 
         btnFinalizarProjeto.setForeground(Color.WHITE);
         btnFinalizarProjeto.setFont(new Font("SansSerif", Font.BOLD, 14));
-        btnFinalizarProjeto.setFocusPainted(false);
-        btnFinalizarProjeto.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         
+        // AÇÃO DO BOTÃO ATUALIZADA
         btnFinalizarProjeto.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Ação simulada: Projeto Criado!\nDatas selecionadas: " + datePickerInicio.getJFormattedTextField().getText() + " a " + datePickerFim.getJFormattedTextField().getText());
+            ProjetoController controller = new ProjetoController();
+
+            String nome = txtNomeProjeto.getText();
+            String orcamento = txtOrcamentoTotal.getText();
+            Date dataInicio = (Date) datePickerInicio.getModel().getValue();
+            Date dataFim = (Date) datePickerFim.getModel().getValue();
+
+            // Agora passa apenas os 4 parâmetros que o Controller espera
+            controller.salvarProjeto(nome, dataInicio, dataFim, orcamento);
         });
 
-        faixa.add(btnFinalizarProjeto, BorderLayout.CENTER);
-        formCard.add(faixa, gbc);
+        formCard.add(btnFinalizarProjeto, gbc);
         return ++startRow;
     }
 
     public static void main(String[] args){
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Nimbus não disponível, usando padrão.");
-        }
         SwingUtilities.invokeLater(() -> {
             new CriarProjetoView().setVisible(true);
         });

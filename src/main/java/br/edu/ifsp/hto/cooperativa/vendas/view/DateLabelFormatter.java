@@ -1,4 +1,4 @@
-package br.org.assentamento.erp.vendas.view;
+package br.edu.ifsp.hto.cooperativa.vendas.view;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

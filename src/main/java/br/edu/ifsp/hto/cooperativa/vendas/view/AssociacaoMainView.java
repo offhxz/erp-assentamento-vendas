@@ -1,4 +1,4 @@
-package br.org.assentamento.erp.vendas.view;
+package br.edu.ifsp.hto.cooperativa.vendas.view;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
