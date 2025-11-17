@@ -34,7 +34,10 @@ public class ConsultaPedidosView extends BaseView {
     // --- CAMPOS DE FILTRO ---
     private JComboBox<String> comboProduto;
     private JComboBox<String> comboStatus;
+<<<<<<< HEAD
     private JComboBox<String> comboProjeto; 
+=======
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
     private JDatePickerImpl datePickerDataCadastro;
     private JComboBox<String> comboOpDataCadastro; 
     private JTextField txtValorTotal;
@@ -43,12 +46,15 @@ public class ConsultaPedidosView extends BaseView {
     // --- DADOS MOCK (Simulação de dados existentes) ---
     private static final String[] PRODUTOS_MOCK = {"Batata", "Tomate Maduro", "Alface Crespa", "Melancia", "Cenoura", "Todos"};
     private static final String[] STATUS_MOCK = {"Pedido Feito", "Separado", "Entregue", "Cancelado", "Todos"};
+<<<<<<< HEAD
     private static final String[] PROJETOS_MOCK = {
         "Projeto Raízes Fortes",
         "Projeto Hortaliças Saborosas",
         "Projeto Fruticultura Sustentável",
         "Todos"
     };
+=======
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
     
 
     public ConsultaPedidosView() {
@@ -81,20 +87,32 @@ public class ConsultaPedidosView extends BaseView {
         // 2. FILTRO POR STATUS
         currentRow = adicionarCampoFiltro(form, currentRow, "Status:", comboStatus = new JComboBox<>(STATUS_MOCK), null, false);
         
+<<<<<<< HEAD
         // 3. FILTRO POR PROJETO
         currentRow = adicionarCampoFiltro(form, currentRow, "Projeto:", comboProjeto = new JComboBox<>(PROJETOS_MOCK), null, false);
         
         // 4. FILTRO POR VALOR TOTAL (Com Operador)
+=======
+        // 3. FILTRO POR VALOR TOTAL (Com Operador)
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         txtValorTotal = new JTextField(10);
         comboOpValorTotal = new JComboBox<>(OPERADORES);
         currentRow = adicionarCampoFiltro(form, currentRow, "Valor Total (R$):", txtValorTotal, comboOpValorTotal, true);
         
+<<<<<<< HEAD
         // 5. FILTRO POR DATA CADASTRO (Com Operador)
+=======
+        // 4. FILTRO POR DATA CADASTRO (Com Operador)
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         datePickerDataCadastro = criarDatePicker();
         comboOpDataCadastro = new JComboBox<>(OPERADORES);
         currentRow = adicionarCampoFiltro(form, currentRow, "Data Cadastro:", datePickerDataCadastro, comboOpDataCadastro, true);
         
+<<<<<<< HEAD
         // 6. BARRA DE BOTÕES
+=======
+        // 5. BARRA DE BOTÕES
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         currentRow = adicionarBotaoBar(form, currentRow);
         
         GridBagConstraints gbcSpacer = new GridBagConstraints();
@@ -188,7 +206,10 @@ public class ConsultaPedidosView extends BaseView {
     private void limparFiltros() {
         comboProduto.setSelectedIndex(PRODUTOS_MOCK.length - 1);
         comboStatus.setSelectedIndex(STATUS_MOCK.length - 1);
+<<<<<<< HEAD
         comboProjeto.setSelectedIndex(PROJETOS_MOCK.length - 1); 
+=======
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         if (txtValorTotal != null) txtValorTotal.setText("");
         if (comboOpValorTotal != null) comboOpValorTotal.setSelectedIndex(0);
         if (comboOpDataCadastro != null) comboOpDataCadastro.setSelectedIndex(0);
@@ -201,16 +222,24 @@ public class ConsultaPedidosView extends BaseView {
     private void aplicarFiltros() {
         String filtroProduto = (String) comboProduto.getSelectedItem();
         String filtroStatus = (String) comboStatus.getSelectedItem();
+<<<<<<< HEAD
         String filtroProjeto = (String) comboProjeto.getSelectedItem(); 
+=======
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
         String filtroValorOp = (String) comboOpValorTotal.getSelectedItem();
         String filtroValor = txtValorTotal.getText();
         String filtroData = datePickerDataCadastro.getJFormattedTextField().getText();
         String filtroDataOp = (String) comboOpDataCadastro.getSelectedItem();
 
         String mensagemFiltro = String.format(
+<<<<<<< HEAD
             "FILTROS APLICADOS:\nProduto: %s\nStatus: %s\nProjeto: %s\nValor: %s %s\nData Cadastro: %s %s",
             filtroProduto, filtroStatus, filtroProjeto, 
             filtroValorOp, filtroValor.isEmpty() ? "(vazio)" : "R$ " + filtroValor,
+=======
+            "FILTROS APLICADOS:\nProduto: %s\nStatus: %s\nValor: %s %s\nData Cadastro: %s %s",
+            filtroProduto, filtroStatus, filtroValorOp, filtroValor.isEmpty() ? "(vazio)" : "R$ " + filtroValor,
+>>>>>>> d6bdda011ce259f6ff598a30b8b0171a8cf2899f
             filtroDataOp, filtroData
         );
         
