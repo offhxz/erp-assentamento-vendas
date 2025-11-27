@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class ProjetoVO {
-    private Long id;
+
+    private Long id = null; // garante que nunca começa como 0
     private String nomeProjeto;
     private LocalDateTime dataCriacao;
     private LocalDateTime dataFinal;
@@ -12,8 +13,13 @@ public class ProjetoVO {
 
     public ProjetoVO() {}
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() { 
+        return id == null || id == 0 ? null : id; 
+    }
+
+    public void setId(Long id) { 
+        this.id = (id != null && id == 0) ? null : id; 
+    }
 
     public String getNomeProjeto() { return nomeProjeto; }
     public void setNomeProjeto(String nomeProjeto) { this.nomeProjeto = nomeProjeto; }

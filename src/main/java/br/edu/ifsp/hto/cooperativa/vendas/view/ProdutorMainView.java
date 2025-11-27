@@ -1,276 +1,193 @@
 package br.edu.ifsp.hto.cooperativa.vendas.view;
 
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.util.List;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.PedidoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ProdutoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.ItemPedidoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.PedidoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.sessao.SessaoUsuario;
+
 public class ProdutorMainView extends BaseView {
 
-    private static final Color CONTENT_BG = new Color(0xE9, 0xE9, 0xE9);
-    
-    // --- COMPONENTES DA TELA ---
+    private static final Color BG = new Color(0xE9, 0xE9, 0xE9);
+
     private JTable tabelaPedidos;
+    private JTable tabelaItens;
     private DefaultTableModel pedidosModel;
-    private JTable tabelaDetalhes;
-    private DefaultTableModel detalhesModel;
-    
-    // --- STATUS E CONSTANTES DA TABELA ---
-    private static final String STATUS_FEITO = "Pedido Feito";
-    private static final String STATUS_SEPARADO = "Separado";
-    private static final String STATUS_ENTREGUE = "Entregue";
-    private static final String STATUS_CANCELADO = "Cancelado";
-    private static final int COL_STATUS = 5; // Índice da coluna "Status"
+    private DefaultTableModel itensModel;
+    private JLabel lblTotal;
 
-    // Array de status que podem ser selecionados no Pop-up
-    private static final String[] STATUS_OPCOES = {
-        STATUS_FEITO, 
-        STATUS_SEPARADO, 
-        STATUS_ENTREGUE, 
-        STATUS_CANCELADO
-    };
-    
-    // --- DADOS MOCK (Simulação) ---
-    private static final Object[][] PEDIDOS_MOCK = {
-        {"P001", "R$ 80.00", "01/10/2025", "05/10/2025", "Pix", STATUS_SEPARADO},
-        {"P002", "R$ 45.50", "01/10/2025", "03/10/2025", "Dinheiro", STATUS_FEITO},
-        {"P003", "R$ 120.00", "30/09/2025", "04/10/2025", "Cartão", STATUS_ENTREGUE}
-    };
-    
-    private static final Object[][] DETALHES_P001_MOCK = {
-        {"Tomate Maduro", "10 kg", "R$ 8.00"},
-        {"Alface Crespa", "5 kg", "R$ 5.00"}
-    };
-    private static final Object[][] DETALHES_P002_MOCK = {
-        {"Cenoura", "5 kg", "R$ 4.50"},
-        {"Batata", "5 kg", "R$ 4.60"}
-    };
-    private static final Object[][] DETALHES_P003_MOCK = {
-        {"Melancia", "30 kg", "R$ 4.00"}
-    };
-    
+    private final PedidoDAO pedidoDAO = new PedidoDAO();
+    private final ProdutoDAO produtoDAO = new ProdutoDAO();
 
-    public ProdutorMainView(){
-        // 1. CHAMA O CONSTRUTOR DA BASEVIEW, definindo o título da janela.
-        super("Produtor - Visão Geral de Pedidos");
-        
-        // 2. ADICIONA O CONTEÚDO PRINCIPAL no CENTER (área de trabalho)
-        add(criarContentPanel(), BorderLayout.CENTER);
-        
-        // Carrega o primeiro pedido por padrão
-        if (pedidosModel.getRowCount() > 0) {
-             tabelaPedidos.setRowSelectionInterval(0, 0);
-             updateDetalhes(0);
-        }
+    public ProdutorMainView() {
+        super("Produtor — Meus Pedidos");
+
+        add(criarPainelPrincipal(), BorderLayout.CENTER);
+        carregarPedidos();
     }
 
-    private JPanel criarContentPanel() {
-        JPanel content = new JPanel(new BorderLayout());
-        
-        content.add(criarTitleBar("Produtor - Pedidos Recebidos"), BorderLayout.NORTH);
-        
-        content.add(criarTablesPanel(), BorderLayout.CENTER);
-        return content;
-    }
+    private JPanel criarPainelPrincipal() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BG);
 
-    
-    private JPanel criarTablesPanel() {
-        JPanel tablesPanel = new JPanel();
-        tablesPanel.setLayout(new BoxLayout(tablesPanel, BoxLayout.Y_AXIS));
-        tablesPanel.setBackground(CONTENT_BG); 
-        tablesPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        
-        tablesPanel.add(criarSecaoPedidos());
-        tablesPanel.add(Box.createVerticalStrut(30)); 
-        tablesPanel.add(criarSecaoDetalhes());
+        panel.add(criarTitleBar("Produtor — Meus Pedidos"), BorderLayout.NORTH);
 
-        return tablesPanel;
-    }
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setBackground(BG);
+        center.setBorder(new EmptyBorder(25, 25, 25, 25));
 
-    private JComponent criarSecaoPedidos() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10)); 
-        panel.setBackground(CONTENT_BG);
-        
-        JLabel titulo = new JLabel("Pedidos em Aberto/Histórico");
-        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 18f));
-        panel.add(titulo, BorderLayout.NORTH);
-        
-        String[] colunasPedidos = {"ID Pedido", "Total (R$)", "Data Cadastro", "Data Entrega", "Pagamento", "Status"};
-        
-        pedidosModel = new DefaultTableModel(colunasPedidos, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; 
-            }
-        };
-        
-        for (Object[] pedido : PEDIDOS_MOCK) {
-            pedidosModel.addRow(pedido);
-        }
+        center.add(criarCardPedidos());
+        center.add(Box.createVerticalStrut(20));
+        center.add(criarCardItens());
+        center.add(Box.createVerticalStrut(15));
+        center.add(criarRodape());
 
-        tabelaPedidos = new JTable(pedidosModel);
-        tabelaPedidos.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tabelaPedidos.setRowHeight(28);
-        tabelaPedidos.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-        tabelaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
-        // Listener para atualizar a tabela de detalhes
-        tabelaPedidos.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && tabelaPedidos.getSelectedRow() != -1) {
-                updateDetalhes(tabelaPedidos.getSelectedRow());
-            }
-        });
-        
-        // --- ADICIONA CLIQUE DUPLO PARA ALTERAR STATUS ---
-        tabelaPedidos.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    int row = tabelaPedidos.rowAtPoint(e.getPoint());
-                    int col = tabelaPedidos.columnAtPoint(e.getPoint());
-                    
-                    if (row != -1 && col == COL_STATUS) {
-                        tabelaPedidos.setRowSelectionInterval(row, row);
-                        mostrarPopupStatus(row);
-                    }
-                }
-            }
-        });
-        // --- FIM CLIQUE DUPLO ---
-        
-        JScrollPane scrollPane = new JScrollPane(tabelaPedidos);
-        scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT); 
-        scrollPane.setPreferredSize(new Dimension(800, 200)); 
-        
-        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(center, BorderLayout.CENTER);
         return panel;
     }
-    
-    /**
-     * Exibe o JOptionPane com as opções de status para alteração.
-     * @param rowIndex A linha do pedido a ser alterada.
-     */
-    private void mostrarPopupStatus(int rowIndex) {
-        String idPedido = (String) pedidosModel.getValueAt(rowIndex, 0);
-        String statusAtual = (String) pedidosModel.getValueAt(rowIndex, COL_STATUS);
-        
-        JComboBox<String> comboStatus = new JComboBox<>(STATUS_OPCOES);
-        comboStatus.setSelectedItem(statusAtual);
 
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.add(new JLabel("Selecione o novo status para o Pedido " + idPedido + ":"), BorderLayout.NORTH);
-        panel.add(comboStatus, BorderLayout.CENTER);
+    private JPanel criarCardPedidos() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        int result = JOptionPane.showConfirmDialog(
-            this, 
-            panel, 
-            "Alterar Status do Pedido",
-            JOptionPane.OK_CANCEL_OPTION, 
-            JOptionPane.PLAIN_MESSAGE
-        );
+        JLabel titulo = new JLabel("Meus Pedidos");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.add(titulo, BorderLayout.NORTH);
 
-        if (result == JOptionPane.OK_OPTION) {
-            String novoStatus = (String) comboStatus.getSelectedItem();
-            if (novoStatus != null && !novoStatus.equals(statusAtual)) {
-                alterarStatusPedido(rowIndex, novoStatus);
-            }
-        }
+        String[] col = {"ID", "Data", "Total (R$)", "Status"};
+        pedidosModel = new DefaultTableModel(col, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        tabelaPedidos = new JTable(pedidosModel);
+        tabelaPedidos.setRowHeight(26);
+        tabelaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        tabelaPedidos.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) carregarItens();
+        });
+
+        card.add(new JScrollPane(tabelaPedidos), BorderLayout.CENTER);
+        return card;
     }
-    
-    /**
-     * Lógica simulada para alterar o status na tabela.
-     * @param rowIndex A linha a ser atualizada.
-     * @param novoStatus O novo valor de status.
-     */
-    private void alterarStatusPedido(int rowIndex, String novoStatus) {
-        String currentStatus = (String) pedidosModel.getValueAt(rowIndex, COL_STATUS);
-        
-        if ((currentStatus.equals(STATUS_ENTREGUE) || currentStatus.equals(STATUS_CANCELADO)) && 
-            !novoStatus.equals(currentStatus)) {
-            
-            JOptionPane.showMessageDialog(this, 
-                "Não é possível alterar o status de um pedido já Entregue ou Cancelado.", 
-                "Status Inválido", JOptionPane.WARNING_MESSAGE);
+
+    private JPanel criarCardItens() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel titulo = new JLabel("Itens do Pedido");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.add(titulo, BorderLayout.NORTH);
+
+        String[] col = {"Produto", "Quantidade", "Valor Unitário", "Subtotal"};
+        itensModel = new DefaultTableModel(col, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        tabelaItens = new JTable(itensModel);
+        tabelaItens.setRowHeight(26);
+
+        lblTotal = new JLabel("Total: R$ 0,00");
+        lblTotal.setFont(new Font("SansSerif", Font.BOLD, 14));
+        lblTotal.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rodape.setBackground(Color.WHITE);
+        rodape.add(lblTotal);
+
+        card.add(new JScrollPane(tabelaItens), BorderLayout.CENTER);
+        card.add(rodape, BorderLayout.SOUTH);
+
+        return card;
+    }
+
+    private JPanel criarRodape() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panel.setBackground(BG);
+
+        JButton btnNovo = new JButton("Criar Pedido");
+        btnNovo.addActionListener(e -> abrirCriarPedido());
+        panel.add(btnNovo);
+
+        return panel;
+    }
+
+    private void abrirCriarPedido() {
+        new CriarPedidoView().setVisible(true);
+        dispose();
+    }
+
+    // ---------------- CARREGAR DADOS ----------------
+
+    private void carregarPedidos() {
+        pedidosModel.setRowCount(0);
+
+        Long produtorId = SessaoUsuario.getAssociadoId();
+        if (produtorId == null) {
+            JOptionPane.showMessageDialog(this, "ERRO: Produtor não identificado na sessão.");
             return;
         }
 
-        pedidosModel.setValueAt(novoStatus, rowIndex, COL_STATUS);
-        
-        String idPedido = (String) pedidosModel.getValueAt(rowIndex, 0);
-        System.out.println("Status do Pedido " + idPedido + " alterado para: " + novoStatus);
-    }
-    
-    private JComponent criarSecaoDetalhes() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10)); 
-        panel.setBackground(CONTENT_BG);
-        
-        JLabel titulo = new JLabel("Detalhes do Pedido Selecionado");
-        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 18f));
-        panel.add(titulo, BorderLayout.NORTH);
+        List<PedidoVO> pedidos = pedidoDAO.listarPorAssociado(produtorId);
 
-        String[] colunasDetalhes = {"Produto", "Quantidade", "Valor Unitário (R$)"};
-        detalhesModel = new DefaultTableModel(colunasDetalhes, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; 
-            }
-        };
-        
-        tabelaDetalhes = new JTable(detalhesModel);
-        tabelaDetalhes.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tabelaDetalhes.setRowHeight(28);
-        tabelaDetalhes.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-
-        JScrollPane scrollPane = new JScrollPane(tabelaDetalhes);
-        scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-        scrollPane.setPreferredSize(new Dimension(800, 250)); 
-        
-        panel.add(scrollPane, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private void updateDetalhes(int rowIndex) {
-        detalhesModel.setRowCount(0);
-
-        Object[][] detalhes = null;
-        String idPedido = (String) pedidosModel.getValueAt(rowIndex, 0);
-
-        switch (idPedido) {
-            case "P001":
-                detalhes = DETALHES_P001_MOCK;
-                break;
-            case "P002":
-                detalhes = DETALHES_P002_MOCK;
-                break;
-            case "P003":
-                detalhes = DETALHES_P003_MOCK;
-                break;
-            default:
-                break;
-        }
-
-        if (detalhes != null) {
-            for (Object[] item : detalhes) {
-                detalhesModel.addRow(item);
-            }
+        for (PedidoVO p : pedidos) {
+            pedidosModel.addRow(new Object[]{
+                    p.getId(),
+                    p.getDataCriacao(),
+                    p.getValorTotal(),
+                    p.getStatusPedidoId()
+            });
         }
     }
 
-    public static void main(String[] args){
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Nimbus não disponível, usando padrão.");
+    private void carregarItens() {
+        itensModel.setRowCount(0);
+        lblTotal.setText("Total: R$ 0,00");
+
+        int row = tabelaPedidos.getSelectedRow();
+        if (row < 0) return;
+
+        Long pedidoId = (Long) pedidosModel.getValueAt(row, 0);
+        List<ItemPedidoVO> itens = pedidoDAO.listarItens(pedidoId);
+
+        double total = 0;
+
+        for (ItemPedidoVO it : itens) {
+            var prod = produtoDAO.buscarPorId(it.getProdutoId());
+
+            itensModel.addRow(new Object[]{
+                    prod != null ? prod.getNome() : "Produto #" + it.getProdutoId(),
+                    it.getQuantidadeTotal(),
+                    it.getValorUnitario(),
+                    it.getValorTotal()
+            });
+
+            total += it.getValorTotal().doubleValue();
         }
-        SwingUtilities.invokeLater(() -> {
-            new ProdutorMainView().setVisible(true);
-        });
+
+        lblTotal.setText(String.format("Total: R$ %.2f", total));
     }
 }

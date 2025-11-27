@@ -1,437 +1,199 @@
 package br.edu.ifsp.hto.cooperativa.vendas.view;
 
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.HashMap;
-import java.util.Map;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.util.List;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
+
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ItemPedidoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.PedidoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ProdutoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.ItemPedidoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.PedidoVO;
 
 public class AssociacaoMainView extends BaseView {
 
-    private static final long serialVersionUID = 1L;
+    private static final Color BG = new Color(0xE9, 0xE9, 0xE9);
 
     private JTable tabelaPedidos;
-    private JTable tabelaAcompanhamento;
-    private DefaultTableModel modeloAcompanhamento;
-    private Map<Object, Object[][]> dadosDeAcompanhamento;
-
-    private DefaultTableModel pedidosModel; 
-    
-    private JLabel lblTotalAcompanhamento;
-
-
-    private static final String STATUS_FINALIZADO = "Finalizado";
-    private static final String STATUS_EM_PROCESSO = "Em processo";
-    private static final String STATUS_CANCELADO = "Cancelado";
-    private static final int COL_STATUS = 5; // Coluna 5 agora (0-5)
-
-    private static final String[] STATUS_OPCOES = {
-        STATUS_FINALIZADO, 
-        STATUS_EM_PROCESSO,
-        STATUS_CANCELADO
-    };
-
-    // Status para a tabela Acompanhamento
-    private static final String STATUS_ACOMP_ENTREGUE = "Entregue";
-    private static final String STATUS_ACOMP_SEPARACAO = "Em separação";
-    private static final String STATUS_ACOMP_CANCELADO_PROD = "Cancelado";
-    private static final String STATUS_ACOMP_AG_PAGAMENTO = "Aguardando Pagamento";
-    private static final String STATUS_ACOMP_ENVIADO = "Enviado";
-    private static final int COL_STATUS_ACOMPANHAMENTO = 3; 
-
-    private static final String[] STATUS_OPCOES_ACOMPANHAMENTO = {
-        STATUS_ACOMP_SEPARACAO,
-        STATUS_ACOMP_AG_PAGAMENTO,
-        STATUS_ACOMP_ENVIADO,
-        STATUS_ACOMP_ENTREGUE,
-        STATUS_ACOMP_CANCELADO_PROD
-    };
+    private JTable tabelaItens;
+    private DefaultTableModel pedidosModel;
+    private DefaultTableModel itensModel;
+    private JLabel lblTotal;
 
     public AssociacaoMainView() {
-        super("Associação - Visão Geral de Pedidos");
-        
-        // Dados de exemplo devem ser inicializados ANTES de criar o painel
-        inicializarDadosDeExemplo();
-        add(criarContentPanel(), BorderLayout.CENTER);
+        super("Associação - Pedidos");
 
-        // Carrega o primeiro pedido por padrão
-        if (pedidosModel.getRowCount() > 0) {
-            tabelaPedidos.setRowSelectionInterval(0, 0);
-            atualizarAcompanhamento();
-       }
+        add(criarPainelPrincipal(), BorderLayout.CENTER);
+        carregarPedidos();
     }
 
-    private void inicializarDadosDeExemplo() {
-        dadosDeAcompanhamento = new HashMap<>();
+    private JPanel criarPainelPrincipal() {
 
-        dadosDeAcompanhamento.put(1, new Object[][]{
-            {"Tomate Cereja (Kg)", "5", "R$ 8,50", STATUS_ACOMP_SEPARACAO},
-            {"Alface Crespa (Un)", "10", "R$ 3,00", STATUS_ACOMP_SEPARACAO}
-        });
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BG);
 
-        dadosDeAcompanhamento.put(2, new Object[][]{
-            {"Cenoura (Kg)", "8", "R$ 4,20", STATUS_ACOMP_AG_PAGAMENTO},
-            {"Batata Doce (Kg)", "12", "R$ 5,00", STATUS_ACOMP_AG_PAGAMENTO}
-        });
+        panel.add(criarTitleBar("Associação — Pedidos Recebidos"), BorderLayout.NORTH);
 
-        dadosDeAcompanhamento.put(3, new Object[][]{
-            {"Abóbora (Un)", "3", "R$ 7,80", STATUS_ACOMP_ENVIADO},
-            {"Rúcula (Maço)", "15", "R$ 3,50", STATUS_ACOMP_ENVIADO},
-            {"Brócolis (Un)", "7", "R$ 6,00", STATUS_ACOMP_ENVIADO}
-        });
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setBackground(BG);
+        center.setBorder(new EmptyBorder(25, 25, 25, 25));
+
+        center.add(criarCardPedidos());
+        center.add(Box.createVerticalStrut(25));
+        center.add(criarCardItens());
+
+        panel.add(center, BorderLayout.CENTER);
+
+        return panel;
     }
 
-    private JPanel criarContentPanel() {
-        JPanel content = new JPanel(new BorderLayout());
-        content.add(criarTitleBar(), BorderLayout.NORTH);
-        content.add(criarDashboardCard(), BorderLayout.CENTER);
-        return content;
-    }
+    private JPanel criarCardPedidos() {
 
-    private JComponent criarTitleBar() {
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(new Color(0x6A, 0x6E, 0x2D));
-        bar.setBorder(new EmptyBorder(12, 24, 12, 24));
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel titulo = new JLabel("Associação - Pedidos Recebidos", SwingConstants.CENTER);
-        titulo.setForeground(Color.WHITE);
-        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 24f));
+        JLabel titulo = new JLabel("Pedidos Cadastrados");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.add(titulo, BorderLayout.NORTH);
 
-        bar.add(titulo, BorderLayout.CENTER);
-        return bar;
-    }
+        String[] col = {"ID", "Projeto", "Data", "Total (R$)", "Status"};
 
-    @Override
-    protected JPanel criarHeader(String texto) {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(new Color(0x6A, 0x6E, 0x2D));
-        p.setBorder(new EmptyBorder(8, 12, 8, 12));
-
-        JLabel l = new JLabel(texto, SwingConstants.CENTER);
-        l.setForeground(Color.WHITE);
-        l.setFont(l.getFont().deriveFont(Font.BOLD, 14f));
-        p.add(l, BorderLayout.CENTER);
-
-        return p;
-    }
-
-    private JScrollPane criarDashboardCard() {
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(new Color(0xE9, 0xE9, 0xE9));
-        card.setBorder(new EmptyBorder(24, 24, 24, 24));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 0, 8, 0);
-
-        // --- Pedidos Recentes ---
-        card.add(criarHeader("Pedidos Recentes"), gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, 24, 0);
-        String[] colunasPedidos = {"Nº Pedido", "Cliente", "Data do Pedido", "Orçamento Total", "Saldo Disponível", "Status"};
-        
-        Object[][] dadosPedidosMock = {
-            {1, "alguem ai", "10/06/2025", "R$ 150,75", STATUS_FINALIZADO},
-            {2, "Siclano de tal", "10/06/2025", "R$ 89,90", STATUS_CANCELADO},
-            {3, "Fulano de tal", "10/06/2025", "R$ 234,50", STATUS_EM_PROCESSO}
+        pedidosModel = new DefaultTableModel(col, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        
-        // --- Processa os dados para calcular o saldo ---
-        Object[][] dadosTabelaFinal = new Object[dadosPedidosMock.length][6];
-        for (int i = 0; i < dadosPedidosMock.length; i++) {
-            int pedidoId = (int) dadosPedidosMock[i][0];
-            String orcamentoStr = ((String) dadosPedidosMock[i][3]).replace("R$ ", "").replace(".", "").replace(",", ".");
-            double orcamentoTotal = 0.0;
-            
-            try { orcamentoTotal = Double.parseDouble(orcamentoStr); } catch (NumberFormatException e) {}
 
-            double totalGasto = 0.0;
-            Object[][] items = dadosDeAcompanhamento.getOrDefault(pedidoId, new Object[][]{});
-
-            for (Object[] item : items) {
-                try {
-                    String valorUnitStr = ((String) item[2]).replace("R$ ", "").replace(".", "").replace(",", ".");
-                    String qtdStr = ((String) item[1]).replace(",", ".");
-                    
-                    double valorUnit = Double.parseDouble(valorUnitStr);
-                    double qtd = Double.parseDouble(qtdStr);
-                    totalGasto += (valorUnit * qtd);
-                } catch (Exception e) {
-                    System.err.println("Erro ao calcular total do item: " + e.getMessage());
-                }
-            }
-            
-            double saldo = orcamentoTotal - totalGasto;
-
-            dadosTabelaFinal[i][0] = dadosPedidosMock[i][0]; // Nº Pedido
-            dadosTabelaFinal[i][1] = dadosPedidosMock[i][1]; // Cliente
-            dadosTabelaFinal[i][2] = dadosPedidosMock[i][2]; // Data
-            dadosTabelaFinal[i][3] = dadosPedidosMock[i][3]; // Orçamento Total
-            dadosTabelaFinal[i][4] = String.format("R$ %.2f", saldo); // Saldo Disponível
-            dadosTabelaFinal[i][5] = dadosPedidosMock[i][4]; // Status
-        }
-        
-        pedidosModel = new DefaultTableModel(dadosTabelaFinal, colunasPedidos) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
-        };
-        tabelaPedidos = new JTable(pedidosModel); 
-
-        tabelaPedidos.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tabelaPedidos = new JTable(pedidosModel);
         tabelaPedidos.setRowHeight(28);
         tabelaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JTableHeader header = tabelaPedidos.getTableHeader();
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setReorderingAllowed(false);
-        header.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-        
-        card.add(new JScrollPane(tabelaPedidos), gbc);
-
-        // --- Acompanhamento de Produtos ---
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, 8, 0);
-        card.add(criarHeader("Acompanhamento de Produtos"), gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, 0, 0); // Remove o inset de baixo
-        String[] colunasProdutos = {"Produto", "Quantidade", "Valor Unitário", "Status do pedido"};
-        
-        // Usa o criarTabelaEstilizada mas salva o modelo
-        tabelaAcompanhamento = criarTabelaEstilizada(colunasProdutos, new Object[][]{});
-        modeloAcompanhamento = (DefaultTableModel) tabelaAcompanhamento.getModel();
-        card.add(new JScrollPane(tabelaAcompanhamento), gbc);
-
-        // --- Painel de Total de Acompanhamento ---
-        gbc.gridy++;
-        gbc.insets = new Insets(4, 8, 24, 8); // Adiciona padding
-        
-        JPanel painelTotalAcompanhamento = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        painelTotalAcompanhamento.setBackground(new Color(0xE0, 0xE0, 0xE0));
-        painelTotalAcompanhamento.setBorder(BorderFactory.createMatteBorder(0, 1, 1, 1, Color.GRAY));
-
-        JLabel lblTotalTexto = new JLabel("Total dos Itens:");
-        lblTotalTexto.setFont(new Font("SansSerif", Font.BOLD, 14));
-        
-        lblTotalAcompanhamento = new JLabel("R$ 0,00");
-        lblTotalAcompanhamento.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lblTotalAcompanhamento.setForeground(Color.RED.darker());
-        
-        painelTotalAcompanhamento.add(lblTotalTexto);
-        painelTotalAcompanhamento.add(lblTotalAcompanhamento);
-        
-        card.add(painelTotalAcompanhamento, gbc);
-
 
         tabelaPedidos.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) atualizarAcompanhamento();
+            if (!e.getValueIsAdjusting()) carregarItens();
         });
 
-        tabelaPedidos.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { 
-                    int row = tabelaPedidos.rowAtPoint(e.getPoint());
-                    int col = tabelaPedidos.columnAtPoint(e.getPoint());
-                    
-                    if (row != -1 && col == COL_STATUS) { 
-                        tabelaPedidos.setRowSelectionInterval(row, row);
-                        mostrarPopupStatus(row); 
-                    }
-                }
-            }
-        });
+        card.add(new JScrollPane(tabelaPedidos), BorderLayout.CENTER);
 
-        tabelaAcompanhamento.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { 
-                    int row = tabelaAcompanhamento.rowAtPoint(e.getPoint());
-                    int col = tabelaAcompanhamento.columnAtPoint(e.getPoint());
-                    
-                    if (row != -1 && col == COL_STATUS_ACOMPANHAMENTO) { 
-                        tabelaAcompanhamento.setRowSelectionInterval(row, row);
-                        mostrarPopupStatusAcompanhamento(row); 
-                    }
-                }
-            }
-        });
+        return card;
+    }
 
-        // --- Visão Geral de Projetos ---
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, 8, 0);
-        card.add(criarHeader("Visão Geral de Projetos"), gbc);
+    private JPanel criarCardItens() {
 
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, 24, 0);
-        String[] colunasProjetos = {"Nº Projeto", "Cliente", "Data final", "Valor Total"};
-        Object[][] dadosProjetos = {
-            {1, "Fulano de tal", "--/--/----", "ORÇ. R$15.000"},
-            {34, "Fulano de tal", "--/--/----", "ORÇ. R$15.000"},
-            {245, "Fulano de tal", "--/--/----", "ORÇ. R$15.000"}
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel titulo = new JLabel("Itens do Pedido Selecionado");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.add(titulo, BorderLayout.NORTH);
+
+        String[] col = {"Produto", "Quantidade", "Valor Unitário", "Subtotal"};
+
+        itensModel = new DefaultTableModel(col, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        card.add(new JScrollPane(criarTabelaEstilizada(colunasProjetos, dadosProjetos)), gbc);
 
-        JScrollPane scrollPane = new JScrollPane(card);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        return scrollPane;
+        tabelaItens = new JTable(itensModel);
+        tabelaItens.setRowHeight(28);
+
+        lblTotal = new JLabel("Total: R$ 0,00");
+        lblTotal.setFont(new Font("SansSerif", Font.BOLD, 15));
+        lblTotal.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rodape.setBackground(Color.WHITE);
+        rodape.add(lblTotal);
+
+        card.add(new JScrollPane(tabelaItens), BorderLayout.CENTER);
+        card.add(rodape, BorderLayout.SOUTH);
+
+        return card;
     }
 
-    private void atualizarAcompanhamento() {
-        int selectedRow = tabelaPedidos.getSelectedRow();
-        String[] colunasProdutos = {"Produto", "Quantidade", "Valor Unitário", "Status do pedido"};
-        
-        double totalItens = 0.0;
+    // =====================================================
+    // CARREGA PEDIDOS (SEM ALTERAR DAO NEM VO)
+    // =====================================================
+    private void carregarPedidos() {
 
-        if (selectedRow != -1) {
-            Object pedidoId = tabelaPedidos.getValueAt(selectedRow, 0);
-            Object[][] novosDados = dadosDeAcompanhamento.getOrDefault(pedidoId, new Object[][]{});
-            modeloAcompanhamento.setDataVector(novosDados, colunasProdutos);
+        pedidosModel.setRowCount(0);
+
+        PedidoDAO dao = new PedidoDAO();
+        List<PedidoVO> lista = dao.listarTodos();
+
+        for (PedidoVO p : lista) {
+
+            String dataStr = (p.getDataCriacao() != null)
+                ? p.getDataCriacao().toLocalDate().toString()
+                : "";
+
+            pedidosModel.addRow(new Object[]{
+                p.getId(),
+                // Mantém o projeto como estava (ID ou "Avulso")
+                p.getProjetoId() != null ? p.getProjetoId() : "Avulso", 
+                dataStr,
+                p.getValorTotal(),
+                
+                // --- MUDANÇA AQUI ---
+                // Exibe a descrição (ex: "Aberto") em vez do ID (1)
+                p.getStatusDescricao() 
+            });
+        }
+    }
+
+    // =====================================================
+    // CARREGA ITENS DO PEDIDO SELECIONADO
+    // =====================================================
+    private void carregarItens() {
+        // Limpa a tabela antes de carregar
+        itensModel.setRowCount(0);
+        lblTotal.setText("Total: R$ 0,00"); // Reseta o label
+
+        int linha = tabelaPedidos.getSelectedRow();
+        if (linha == -1) return;
+
+        // Pega o ID da linha selecionada
+        Long pedidoId = Long.valueOf(tabelaPedidos.getValueAt(linha, 0).toString());
+
+        // USA A NOVA DAO QUE VOCÊ CRIOU
+        ItemPedidoDAO itemDao = new ItemPedidoDAO(); 
+        List<ItemPedidoVO> itens = itemDao.listarPorPedido(pedidoId);
+
+        ProdutoDAO prodDAO = new ProdutoDAO();
+        double total = 0;
+
+        for (ItemPedidoVO item : itens) {
+
+            // Busca o nome do produto
+            ProdutoDAO.Produto prod = prodDAO.buscarPorId(item.getProdutoId());
             
-            for (Object[] item : novosDados) {
-                try {
-                    String valorUnitStr = ((String) item[2]).replace("R$ ", "").replace(".", "").replace(",", ".");
-                    String qtdStr = ((String) item[1]).replace(",", ".");
-                    
-                    double valorUnit = Double.parseDouble(valorUnitStr);
-                    double qtd = Double.parseDouble(qtdStr);
-                    totalItens += (valorUnit * qtd);
-                } catch (Exception e) {
-                    System.err.println("Erro ao calcular total do item: " + e.getMessage());
-                }
-            }
-        } else {
-            modeloAcompanhamento.setDataVector(new Object[][]{}, colunasProdutos);
-        }
-        
-        if (lblTotalAcompanhamento != null) {
-            lblTotalAcompanhamento.setText(String.format("R$ %.2f", totalItens));
-        }
-    }
+            // Se prod vir nulo, é porque a ProdutoDAO não achou o ID no banco
+            String nomeProduto = (prod != null) ? prod.getNome() : "Produto #" + item.getProdutoId();
 
-    private void mostrarPopupStatus(int rowIndex) {
-        Object idPedido = pedidosModel.getValueAt(rowIndex, 0); 
-        String statusAtual = (String) pedidosModel.getValueAt(rowIndex, COL_STATUS);
-        
-        JComboBox<String> comboStatus = new JComboBox<>(STATUS_OPCOES);
-        comboStatus.setSelectedItem(statusAtual);
+            double subtotal = item.getValorTotal().doubleValue();
+            total += subtotal;
 
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.add(new JLabel("Selecione o novo status para o Pedido " + idPedido + ":"), BorderLayout.NORTH);
-        panel.add(comboStatus, BorderLayout.CENTER);
-
-        int result = JOptionPane.showConfirmDialog(
-            this, 
-            panel, 
-            "Alterar Status do Pedido",
-            JOptionPane.OK_CANCEL_OPTION, 
-            JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result == JOptionPane.OK_OPTION) {
-            String novoStatus = (String) comboStatus.getSelectedItem();
-            if (novoStatus != null && !novoStatus.equals(statusAtual)) {
-                alterarStatusPedido(rowIndex, novoStatus); 
-            }
-        }
-    }
-    
-    private void alterarStatusPedido(int rowIndex, String novoStatus) {
-        String currentStatus = (String) pedidosModel.getValueAt(rowIndex, COL_STATUS);
-        
-        if ((currentStatus.equals(STATUS_FINALIZADO) || currentStatus.equals(STATUS_CANCELADO)) && 
-            !novoStatus.equals(currentStatus)) {
-            
-            JOptionPane.showMessageDialog(this, 
-                "Não é possível alterar o status de um pedido já Finalizado ou Cancelado.", 
-                "Status Inválido", JOptionPane.WARNING_MESSAGE);
-            return;
+            itensModel.addRow(new Object[]{
+                    nomeProduto,
+                    item.getQuantidadeTotal(),
+                    item.getValorUnitario(),
+                    subtotal
+            });
         }
 
-        pedidosModel.setValueAt(novoStatus, rowIndex, COL_STATUS);
-        
-        Object idPedido = pedidosModel.getValueAt(rowIndex, 0);
-        System.out.println("Status do Pedido " + idPedido + " alterado para: " + novoStatus);
-    }
-
-    private void mostrarPopupStatusAcompanhamento(int rowIndex) {
-        Object produtoNome = modeloAcompanhamento.getValueAt(rowIndex, 0); 
-        String statusAtual = (String) modeloAcompanhamento.getValueAt(rowIndex, COL_STATUS_ACOMPANHAMENTO);
-        
-        JComboBox<String> comboStatus = new JComboBox<>(STATUS_OPCOES_ACOMPANHAMENTO);
-        comboStatus.setSelectedItem(statusAtual);
-
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.add(new JLabel("Selecione o novo status para o produto " + produtoNome + ":"), BorderLayout.NORTH);
-        panel.add(comboStatus, BorderLayout.CENTER);
-
-        int result = JOptionPane.showConfirmDialog(
-            this, 
-            panel, 
-            "Alterar Status do Produto",
-            JOptionPane.OK_CANCEL_OPTION, 
-            JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result == JOptionPane.OK_OPTION) {
-            String novoStatus = (String) comboStatus.getSelectedItem();
-            if (novoStatus != null && !novoStatus.equals(statusAtual)) {
-                alterarStatusAcompanhamento(rowIndex, novoStatus); 
-            }
-        }
-    }
-    
-    private void alterarStatusAcompanhamento(int rowIndex, String novoStatus) {
-        String currentStatus = (String) modeloAcompanhamento.getValueAt(rowIndex, COL_STATUS_ACOMPANHAMENTO);
-        
-        if ((currentStatus.equals(STATUS_ACOMP_ENTREGUE) || currentStatus.equals(STATUS_ACOMP_ENVIADO) || currentStatus.equals(STATUS_ACOMP_CANCELADO_PROD)) && 
-            !novoStatus.equals(currentStatus)) {
-            
-            JOptionPane.showMessageDialog(this, 
-                "Não é possível alterar o status de um item já finalizado (Entregue, Enviado ou Cancelado).", 
-                "Status Inválido", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        modeloAcompanhamento.setValueAt(novoStatus, rowIndex, COL_STATUS_ACOMPANHAMENTO);
-        
-        Object produtoNome = modeloAcompanhamento.getValueAt(rowIndex, 0);
-        System.out.println("Status do Produto " + produtoNome + " alterado para: " + novoStatus);
-    }
-
-    private JTable criarTabelaEstilizada(String[] colunas, Object[][] dados) {
-        DefaultTableModel model = new DefaultTableModel(dados, colunas) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
-        };
-        JTable tabela = new JTable(model);
-        tabela.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tabela.setRowHeight(28);
-        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        JTableHeader header = tabela.getTableHeader();
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setReorderingAllowed(false);
-        header.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-
-        return tabela;
-    }
-
-    public static void main(String[] args) {
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception ignored) {}
-
-        SwingUtilities.invokeLater(() -> new AssociacaoMainView().setVisible(true));
+        lblTotal.setText(String.format("Total: R$ %.2f", total));
     }
 }

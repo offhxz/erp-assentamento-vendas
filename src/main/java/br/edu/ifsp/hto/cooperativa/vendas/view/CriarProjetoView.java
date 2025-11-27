@@ -1,227 +1,205 @@
 package br.edu.ifsp.hto.cooperativa.vendas.view;
 
-import br.edu.ifsp.hto.cooperativa.vendas.controller.ProjetoController;
-import java.awt.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.MaskFormatter;
 
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.UtilDateModel;
-import org.jdatepicker.impl.DateComponentFormatter;
-
-// --- FORMATTER DE DATA (MANTIDO IGUAL) ---
-class DateLabelFormatter extends DateComponentFormatter {
-    private String datePattern = "dd/MM/yyyy";
-    private SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
-    @Override
-    public Object stringToValue(String text) throws ParseException { return dateFormatter.parseObject(text); }
-    @Override
-    public String valueToString(Object value) throws ParseException {
-        if (value != null) { Calendar cal = (Calendar) value; return dateFormatter.format(cal.getTime()); }
-        return "";
-    }
-}
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ProjetoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.ProjetoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.sessao.SessaoUsuario;
 
 public class CriarProjetoView extends BaseView {
 
-    private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
-    private static final Color FORM_BG = new Color(0xE9, 0xE9, 0xE9);
-    private static final Color CAMPO_BG = Color.WHITE;
-    
-    // --- CAMPOS DE INPUT (REMOVIDOS EMPRESA E CNPJ) ---
-    private JTextField txtNomeProjeto;
-    private JDatePickerImpl datePickerInicio;
-    private JDatePickerImpl datePickerFim;
-    private JTextField txtOrcamentoTotal;
-    
-    public CriarProjetoView(){
-        super("Criar Pedido"); 
-        add(criarContentPanel(), BorderLayout.CENTER);
+    private static final Color BG = new Color(0xE9, 0xE9, 0xE9);
+    private static final Color BTN_SUCCESS = new Color(60, 179, 113); // Verde igual do Pedido
+
+    private JTextField campoNome;
+    private JTextField campoOrcamento;
+    private JFormattedTextField campoDataFinal;
+
+    public CriarProjetoView() {
+        super("Criar Projeto");
+        add(criarPainel(), BorderLayout.CENTER);
     }
 
-    private JPanel criarContentPanel() {
-        JPanel content = new JPanel(new BorderLayout());
-        content.add(criarTitleBar(), BorderLayout.NORTH);
-        content.add(criarFormCard(), BorderLayout.CENTER);
-        return content;
-    }
-
-    private JComponent criarTitleBar() {
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(VERDE_PADRAO); 
-        bar.setBorder(new EmptyBorder(12, 24, 12, 24));
-        JLabel titulo = new JLabel("Criar Novo Projeto", SwingConstants.CENTER);
-        titulo.setForeground(Color.WHITE);
-        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 24f));
-        bar.add(titulo, BorderLayout.CENTER);
-        return bar;
-    }
-
-    private JPanel criarFormCard(){
-        JPanel formCard = new JPanel(new GridBagLayout());
-        formCard.setBackground(FORM_BG);
-        formCard.setBorder(new EmptyBorder(24, 24, 24, 24));
-        
-        int currentRow = 0; 
-
-        // --- SEÇÃO DADOS BÁSICOS (AGORA SÓ TEM O NOME) ---
-        currentRow = adicionarSecaoDadosBasicos(formCard, currentRow);
-        
-        // --- SEÇÃO DATAS E VALORES ---
-        currentRow = adicionarSecaoDatasValores(formCard, currentRow);
-        
-        // --- BOTÃO FINALIZAR ---
-        currentRow = adicionarBotaoFinalizar(formCard, currentRow); 
-
-        GridBagConstraints gbcSpacer = new GridBagConstraints();
-        gbcSpacer.gridx = 0; gbcSpacer.gridy = currentRow; 
-        gbcSpacer.weighty = 1.0; 
-        formCard.add(new JPanel(){{setOpaque(false);}}, gbcSpacer);
-
-        return formCard;
-    }
-    
-    private JComponent criarInputSimples(JTextField field, String labelText) {
+    private JPanel criarPainel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-        
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("SansSerif", Font.BOLD, 12));
-        label.setForeground(Color.GRAY.darker());
-        panel.add(label, BorderLayout.NORTH);
-        
-        field.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        field.setBackground(CAMPO_BG);
-        field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY.darker(), 1), 
-            new EmptyBorder(6, 8, 6, 8)
-        ));
-        panel.add(field, BorderLayout.CENTER);
+        panel.setBackground(BG);
+
+        panel.add(criarTitleBar("Criar Projeto"), BorderLayout.NORTH);
+
+        JPanel center = new JPanel();
+        center.setBackground(BG);
+        center.setBorder(new EmptyBorder(25, 25, 25, 25));
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+
+        // Adiciona o card
+        center.add(criarCardFormulario());
+        center.add(Box.createVerticalStrut(25));
+        center.add(criarRodape());
+
+        // Empurra tudo para cima para não ficar centralizado verticalmente se sobrar espaço
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(BG);
+        wrapper.add(center, BorderLayout.NORTH);
+
+        panel.add(wrapper, BorderLayout.CENTER);
         return panel;
     }
-    
-    // --- SEÇÃO DADOS BÁSICOS (SIMPLIFICADA) ---
-    private int adicionarSecaoDadosBasicos(JPanel formCard, int startRow) {
+
+    private JPanel criarCardFormulario() {
+        JPanel card = new JPanel(new GridBagLayout());
+        card.setBackground(Color.WHITE);
+        
+        // Borda estilo "Card" (igual CriarPedido)
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                new EmptyBorder(30, 30, 30, 30)
+        ));
+
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = startRow; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(12, 8, 6, 8); 
-        
-        formCard.add(criarHeader("Dados do Projeto"), gbc);
-        
-        // 1. Nome do Projeto
-        txtNomeProjeto = new JTextField(20);
-        gbc.gridy = ++startRow;
-        gbc.insets = new Insets(0, 8, 20, 8); // Mais espaço embaixo pois removemos os outros campos
-        formCard.add(criarInputSimples(txtNomeProjeto, "Nome do Projeto *"), gbc);
+        gbc.insets = new Insets(10, 10, 5, 10); 
+        gbc.fill = GridBagConstraints.HORIZONTAL; 
 
-        // REMOVIDO: Empresa e CNPJ
-        
-        return ++startRow;
-    }
-    
-    // --- SEÇÃO DATAS E VALORES (MANTIDA) ---
-    private int adicionarSecaoDatasValores(JPanel formCard, int startRow) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = startRow; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 6, 8); 
-        
-        formCard.add(criarHeader("Datas e Orçamento"), gbc);
-        
-        JPanel painelDatas = new JPanel(new GridBagLayout());
-        painelDatas.setOpaque(false);
-        GridBagConstraints gbcDatas = new GridBagConstraints();
-        gbcDatas.fill = GridBagConstraints.HORIZONTAL;
-        gbcDatas.insets = new Insets(0, 0, 0, 8);
-        
-        // Data Início
-        JPanel wrapInicio = new JPanel(new BorderLayout());
-        wrapInicio.setOpaque(false);
-        wrapInicio.add(new JLabel("Início *") {{ 
-            setFont(new Font("SansSerif", Font.BOLD, 12)); setForeground(Color.GRAY.darker()); 
-        }}, BorderLayout.NORTH);
-        datePickerInicio = criarDatePicker();
-        wrapInicio.add(datePickerInicio, BorderLayout.CENTER);
-        gbcDatas.gridx = 0; gbcDatas.weightx = 0.5;
-        painelDatas.add(wrapInicio, gbcDatas);
+        // --- 1. Nome do Projeto ---
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        card.add(criarLabel("Nome do Projeto:"), gbc);
 
-        // Data Fim
-        JPanel wrapFim = new JPanel(new BorderLayout());
-        wrapFim.setOpaque(false);
-        wrapFim.add(new JLabel("Fim *") {{ 
-            setFont(new Font("SansSerif", Font.BOLD, 12)); setForeground(Color.GRAY.darker()); 
-        }}, BorderLayout.NORTH);
-        datePickerFim = criarDatePicker();
-        wrapFim.add(datePickerFim, BorderLayout.CENTER);
-        gbcDatas.gridx = 1; gbcDatas.weightx = 0.5; gbcDatas.insets = new Insets(0, 0, 0, 0); 
-        painelDatas.add(wrapFim, gbcDatas);
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        campoNome = new JTextField();
+        estilizarCampo(campoNome);
+        card.add(campoNome, gbc);
 
-        gbc.gridy = ++startRow;
-        gbc.insets = new Insets(0, 8, 8, 8);
-        formCard.add(painelDatas, gbc);
-        
-        // Orçamento
-        txtOrcamentoTotal = new JTextField(15);
-        gbc.gridy = ++startRow;
-        gbc.insets = new Insets(0, 8, 20, 8);
-        formCard.add(criarInputSimples(txtOrcamentoTotal, "Orçamento Total (R$) *"), gbc);
-        
-        return ++startRow;
-    }
-    
-    private JDatePickerImpl criarDatePicker() {
-        UtilDateModel model = new UtilDateModel();
-        Calendar cal = Calendar.getInstance();
-        model.setDate(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
-        model.setSelected(true);
-        JDatePanelImpl datePanel = new JDatePanelImpl(model, new Properties());
-        JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-        // Estilização básica do datepicker...
-        return datePicker;
+        // --- 2. Orçamento ---
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        card.add(criarLabel("Orçamento (R$):"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        campoOrcamento = new JTextField();
+        estilizarCampo(campoOrcamento);
+        card.add(campoOrcamento, gbc);
+
+        // --- 3. Data Final ---
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        card.add(criarLabel("Data Final (dd/mm/aaaa):"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        try {
+            MaskFormatter mask = new MaskFormatter("##/##/####");
+            mask.setPlaceholderCharacter('_');
+            campoDataFinal = new JFormattedTextField(mask);
+        } catch (Exception e) {
+            campoDataFinal = new JFormattedTextField();
+        }
+        estilizarCampo(campoDataFinal);
+        card.add(campoDataFinal, gbc);
+
+        return card;
     }
 
-    // --- BOTÃO FINALIZAR (ATUALIZADO) ---
-    private int adicionarBotaoFinalizar(JPanel formCard, int startRow) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = startRow; 
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(12, 8, 12, 8); 
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+    private JPanel criarRodape() {
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rodape.setBackground(BG);
+        rodape.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        JButton btnSalvar = new JButton("Salvar Projeto");
+        btnSalvar.setFont(new Font("SansSerif", Font.BOLD, 16));
+        btnSalvar.setBackground(BTN_SUCCESS);
+        btnSalvar.setForeground(Color.WHITE);
+        btnSalvar.setFocusPainted(false);
+        btnSalvar.setPreferredSize(new Dimension(180, 45)); // Botão grande igual Pedido
         
-        JButton btnFinalizarProjeto = new JButton("Salvar Projeto");
-        btnFinalizarProjeto.setBackground(VERDE_PADRAO); 
-        btnFinalizarProjeto.setForeground(Color.WHITE);
-        btnFinalizarProjeto.setFont(new Font("SansSerif", Font.BOLD, 14));
-        
-        // AÇÃO DO BOTÃO ATUALIZADA
-        btnFinalizarProjeto.addActionListener(e -> {
-            ProjetoController controller = new ProjetoController();
+        btnSalvar.addActionListener(e -> salvarProjeto());
+        rodape.add(btnSalvar);
 
-            String nome = txtNomeProjeto.getText();
-            String orcamento = txtOrcamentoTotal.getText();
-            Date dataInicio = (Date) datePickerInicio.getModel().getValue();
-            Date dataFim = (Date) datePickerFim.getModel().getValue();
-
-            // Agora passa apenas os 4 parâmetros que o Controller espera
-            controller.salvarProjeto(nome, dataInicio, dataFim, orcamento);
-        });
-
-        formCard.add(btnFinalizarProjeto, gbc);
-        return ++startRow;
+        return rodape;
     }
 
-    public static void main(String[] args){
-        SwingUtilities.invokeLater(() -> {
-            new CriarProjetoView().setVisible(true);
-        });
+    // --- MÉTODOS DE ESTILO (Reutilizados do CriarPedido) ---
+
+    private JLabel criarLabel(String texto) {
+        JLabel lbl = new JLabel(texto);
+        lbl.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        return lbl;
+    }
+
+    private void estilizarCampo(JComponent campo) {
+        campo.setPreferredSize(new Dimension(0, 30)); // Altura fixa bonita
+        campo.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    }
+
+    // --- LÓGICA (Campos que você pediu) ---
+
+    private void salvarProjeto() {
+        try {
+            if (campoNome.getText().trim().isEmpty() || campoOrcamento.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Preencha o nome e o orçamento.");
+                return;
+            }
+
+            ProjetoVO projeto = new ProjetoVO();
+            projeto.setNomeProjeto(campoNome.getText());
+            projeto.setDataCriacao(LocalDateTime.now());
+            
+            String orcamentoStr = campoOrcamento.getText().replace(",", ".");
+            projeto.setOrcamento(new BigDecimal(orcamentoStr));
+
+            String dataStr = campoDataFinal.getText();
+            if (dataStr != null && !dataStr.contains("_")) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                LocalDate data = LocalDate.parse(dataStr, formatter);
+                
+                // Define data final às 23:59:59
+                LocalDateTime dataFinal = data.atTime(23, 59, 59);
+                projeto.setDataFinal(dataFinal);
+            } else {
+                projeto.setDataFinal(null); 
+            }
+
+            ProjetoDAO dao = new ProjetoDAO();
+            String msg = dao.adicionar(projeto);
+
+            JOptionPane.showMessageDialog(this, msg);
+
+            if (msg != null && msg.toLowerCase().contains("sucesso")) {
+                voltarParaHome();
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Erro ao salvar: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void voltarParaHome() {
+        String tipo = SessaoUsuario.getTipo();
+        if ("associacao".equalsIgnoreCase(tipo)) {
+            new AssociacaoMainView().setVisible(true);
+        } else if ("produtor".equalsIgnoreCase(tipo)) {
+            new ProdutorMainView().setVisible(true);
+        }
+        dispose();
     }
 }

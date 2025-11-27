@@ -1,455 +1,431 @@
 package br.edu.ifsp.hto.cooperativa.vendas.view;
 
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.HashMap;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.UtilDateModel;
-import org.jdatepicker.impl.DateComponentFormatter;
 
-// Classe Mock (simulada) para formatar a data (Necessária para o JDatePicker)
-class DateLabelFormatter extends DateComponentFormatter {
-    private String datePattern = "dd/MM/yyyy";
-    private SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
-
-    @Override
-    public Object stringToValue(String text) throws ParseException {
-        return dateFormatter.parseObject(text);
-    }
-
-    @Override
-    public String valueToString(Object value) throws ParseException {
-        if (value != null) {
-            Calendar cal = (Calendar) value;
-            return dateFormatter.format(cal.getTime());
-        }
-        return "";
-    }
-}
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.AssociadoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.PedidoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ProdutoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.dao.ProjetoDAO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.ItemPedidoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.modelo.vo.PedidoVO;
+import br.edu.ifsp.hto.cooperativa.vendas.sessao.SessaoUsuario;
 
 public class CriarPedidoView extends BaseView {
 
-    private static final Color VERDE_PADRAO = new Color(0x6A, 0x6E, 0x2D);
-    private static final Color VERMELHO_ESCURO = new Color(0xCC, 0x00, 0x00); 
+    private static final Color BG = new Color(0xE9, 0xE9, 0xE9);
 
+    private JComboBox<Object> comboAssociado;
+    private JComboBox<Object> comboProduto;
     private JComboBox<String> comboProjeto;
-    private JComboBox<String> comboProduto; 
-    private JTextField txtQuantidade; 
-    private JLabel lblValorUnitario; 
-    private JLabel lblTotalItem; 
-    private DefaultTableModel produtosTableModel; 
-    private JTable tabelaProdutos; 
 
-    
-    // Dados Mock para Produtos e Preços (R$ per kg)
-    private static final Map<String, Double> PRODUTOS_PRECOS = new HashMap<>();
-    static {
-        PRODUTOS_PRECOS.put("Alface Crespa", 5.50);
-        PRODUTOS_PRECOS.put("Tomate Maduro", 8.90);
-        PRODUTOS_PRECOS.put("Melancia", 3.20);
-        PRODUTOS_PRECOS.put("Cenoura", 4.80);
-        PRODUTOS_PRECOS.put("Batata", 6.00);
-    }
+    private JTextField campoQuantidade;
+    private JTextField campoValorUnitario;
 
-    // Dados Mock para Projetos
-    private static final String[] PROJETOS_MOCK = {
-        "Projeto Raízes Fortes",
-        "Projeto Hortaliças Saborosas",
-        "Projeto Fruticultura Sustentável"
-    };
+    private JTable tabelaItens;
+    private DefaultTableModel itensModel;
 
+    private final List<ItemPedidoVO> itensPedido = new ArrayList<>();
+    private BigDecimal totalPedido = BigDecimal.ZERO;
 
-    public CriarPedidoView(){
-        // 1. CHAMA O CONSTRUTOR DA BASEVIEW
-        super("Criar Pedido"); 
-        
-        // 2. ADICIONA O CONTEÚDO PRINCIPAL 
-        add(criarContentPanel(), BorderLayout.CENTER);
-    }
+    public CriarPedidoView() {
+        super("Criar Pedido");
+        add(criarPainel(), BorderLayout.CENTER);
 
-    private JPanel criarContentPanel() {
-        // Painel central (Barra de Título + Formulário)
-        JPanel content = new JPanel(new BorderLayout());
-        
-        // Usa o método criarTitleBar() da BaseView
-        content.add(criarTitleBar("Criar Pedido"), BorderLayout.NORTH); 
-        
-        content.add(criarFormCard(), BorderLayout.CENTER);
-        return content;
-    }
-
-
-    private JPanel criarFormCard(){
-        // Painel do formulário usando GridBagLayout para alinhamento
-        JPanel formCard = new JPanel(new GridBagLayout());
-        // Usa CONTENT_BG da BaseView (presumindo que seja E9E9E9)
-        formCard.setBackground(CONTENT_BG); 
-        formCard.setBorder(new EmptyBorder(24, 24, 24, 24));
-        
-        // Adiciona a nova seção de Projeto (posicionada antes dos produtos)
-        adicionarSecaoProjeto(formCard);
-        
-        // Adiciona as seções do formulário em sequência
-        adicionarSecaoProduto(formCard);
-        adicionarSecaoEntrega(formCard);
-        adicionarSecaoPagamento(formCard); 
-        adicionarBotaoFinalizar(formCard); 
-
-        // Espaçador para empurrar o conteúdo para o topo
-        GridBagConstraints gbcSpacer = new GridBagConstraints();
-        gbcSpacer.gridx = 0;
-        gbcSpacer.gridy = 10; 
-        gbcSpacer.weighty = 1.0; 
-        JPanel spacer = new JPanel();
-        spacer.setOpaque(false);
-        formCard.add(spacer, gbcSpacer);
-
-        return formCard;
-    }
-    
-    // --- MÉTODOS DE LÓGICA DE PRODUTOS/PREÇOS ---
-    private void updateProductPrice() {
-        String selectedProduct = (String) comboProduto.getSelectedItem();
-        Double price = PRODUTOS_PRECOS.getOrDefault(selectedProduct, 0.0);
-        lblValorUnitario.setText(String.format("R$ %.2f", price));
-    }
-
-    private void updateGrandTotal() {
-        double grandTotal = 0.0;
-        for (int i = 0; i < produtosTableModel.getRowCount(); i++) {
-            String totalStr = produtosTableModel.getValueAt(i, 3).toString().replace("R$ ", "").replace(',', '.');
-            try {
-                grandTotal += Double.parseDouble(totalStr);
-            } catch (NumberFormatException e) {
-                System.err.println("Erro ao calcular total na linha " + i + ": " + e.getMessage());
-            }
+        // Carregamentos iniciais
+        if ("associacao".equalsIgnoreCase(SessaoUsuario.getTipo())) {
+            carregarAssociados();
+            carregarProjetos();
+        } else {
+            configurarProdutor();
         }
-        lblTotalItem.setText(String.format("R$ %.2f", grandTotal));
+        
+        carregarProdutos(); // Carrega os produtos no combo
+
+        // --- AQUI ESTÁ A MÁGICA DO VALOR DINÂMICO ---
+        // Sempre que mudar o item selecionado no comboProduto, roda o método atualizarPreco
+        comboProduto.addActionListener(e -> atualizarPreco());
     }
-    
-    private void addProdutoToTable() {
-        String produto = (String) comboProduto.getSelectedItem();
-        String qtdStr = txtQuantidade.getText().trim().replace(',', '.');
 
-        try {
-            double quantity = Double.parseDouble(qtdStr);
-            if (produto != null && quantity > 0) {
-                double unitPrice = PRODUTOS_PRECOS.getOrDefault(produto, 0.0);
-                double total = quantity * unitPrice;
-                
-                produtosTableModel.addRow(new Object[]{
-                    produto, 
-                    String.format("%.2f", quantity), 
-                    String.format("R$ %.2f", unitPrice), 
-                    String.format("R$ %.2f", total),
-                    "X" 
-                });
-                
-                txtQuantidade.setText("");
-                comboProduto.setSelectedIndex(0);
-                updateProductPrice();
-                updateGrandTotal();
-            } else {
-                JOptionPane.showMessageDialog(this, "A quantidade deve ser um número maior que zero!");
-            }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Insira uma quantidade válida!");
-        }
+    private JPanel criarPainel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BG);
+
+        panel.add(criarTitleBar("Criar Pedido"), BorderLayout.NORTH);
+
+        JPanel center = new JPanel();
+        center.setBackground(BG);
+        center.setBorder(new EmptyBorder(25, 25, 25, 25));
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+
+        // Adiciona os cards na vertical
+        center.add(criarCardFormulario());
+        center.add(Box.createVerticalStrut(25)); // Espaço
+        center.add(criarCardTabela());
+        center.add(Box.createVerticalStrut(25)); // Espaço
+        center.add(criarRodape());
+
+        panel.add(center, BorderLayout.CENTER);
+        return panel;
     }
-    // --- FIM DOS MÉTODOS DE LÓGICA DE PRODUTOS/PREÇOS ---
 
+    // --- AQUI ESTÁ A MÁGICA DO POSICIONAMENTO (GridBagLayout) ---
+    private JPanel criarCardFormulario() {
+        JPanel card = new JPanel(new GridBagLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-    // --- ADICIONAR SEÇÃO PROJETO ---
-    private void adicionarSecaoProjeto(JPanel formCard) {
+        // Configurações de posicionamento
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 5, 10); // Margens (Cima, Esq, Baixo, Dir)
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Esticar horizontalmente
+
+        // --- Título ---
+        JLabel titulo = new JLabel("Dados do Pedido");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        
         gbc.gridx = 0; gbc.gridy = 0; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 6, 8); 
+        gbc.gridwidth = 4; // Título ocupa 4 colunas
+        gbc.insets = new Insets(0, 10, 20, 10);
+        card.add(titulo, gbc);
 
-        formCard.add(criarHeader("Selecione o Projeto"), gbc);
+        // Reseta configurações para os campos
+        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.gridwidth = 1;
 
-        comboProjeto = new JComboBox<>(PROJETOS_MOCK);
-        comboProjeto.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        comboProjeto.setSelectedIndex(0);
+        // --- LINHA 1: Associado e Projeto ---
+        
+        // Coluna 0: Label Associado
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0; 
+        card.add(new JLabel("Associado:"), gbc);
 
-        gbc.gridy = 1; 
-        gbc.insets = new Insets(0, 8, 20, 8); 
+        // Coluna 1: Combo Associado
+        gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 0.5; // Cresce 50%
+        comboAssociado = new JComboBox<>();
+        card.add(comboAssociado, gbc);
 
-        formCard.add(comboProjeto, gbc);
+        // Coluna 2: Label Projeto
+        gbc.gridx = 2; gbc.gridy = 1; gbc.weightx = 0;
+        card.add(new JLabel("Projeto:"), gbc);
+
+        // Coluna 3: Combo Projeto
+        gbc.gridx = 3; gbc.gridy = 1; gbc.weightx = 0.5; // Cresce 50%
+        comboProjeto = new JComboBox<>();
+        card.add(comboProjeto, gbc);
+
+        // --- LINHA 2: Produto (Ocupa a linha toda) ---
+        
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        card.add(new JLabel("Produto:"), gbc);
+
+        gbc.gridx = 1; gbc.gridy = 2; 
+        gbc.gridwidth = 3; // Estica pelas colunas 1, 2 e 3
+        gbc.weightx = 1.0;
+        comboProduto = new JComboBox<>();
+        card.add(comboProduto, gbc);
+        
+        gbc.gridwidth = 1; // Reseta largura
+
+        // --- LINHA 3: Quantidade e Valor ---
+
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        card.add(new JLabel("Quantidade:"), gbc);
+
+        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 0.5;
+        campoQuantidade = new JTextField();
+        card.add(campoQuantidade, gbc);
+
+        gbc.gridx = 2; gbc.gridy = 3; gbc.weightx = 0;
+        card.add(new JLabel("Valor Unitário (R$):"), gbc);
+
+        gbc.gridx = 3; gbc.gridy = 3; gbc.weightx = 0.5;
+        campoValorUnitario = new JTextField();
+        // Opcional: campoValorUnitario.setEditable(false); se não quiser deixar editar
+        card.add(campoValorUnitario, gbc);
+
+        // --- LINHA 4: Botões ---
+        
+        JPanel panelBotoes = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panelBotoes.setBackground(Color.WHITE);
+        
+        JButton btnAdd = new JButton("Adicionar Item");
+        btnAdd.setBackground(new Color(60, 179, 113)); // Verde
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.addActionListener(e -> adicionarItem());
+
+        JButton btnRemove = new JButton("Remover Item");
+        btnRemove.setBackground(new Color(220, 53, 69)); // Vermelho
+        btnRemove.setForeground(Color.WHITE);
+        btnRemove.addActionListener(e -> removerItem());
+
+        panelBotoes.add(btnAdd);
+        panelBotoes.add(btnRemove);
+
+        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridwidth = 4;
+        gbc.insets = new Insets(15, 10, 10, 10);
+        card.add(panelBotoes, gbc);
+
+        return card;
     }
-    // --- FIM ADICIONAR SEÇÃO PROJETO ---
 
+    private JPanel criarCardTabela() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-    // --- ADICIONAR SEÇÃO PRODUTO (JTable simplificada) ---
-    private void adicionarSecaoProduto(JPanel formCard) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 2; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(12, 8, 5, 8); 
-        
-        formCard.add(criarHeader("Produtos"), gbc);
-        
-        // Painel de Input de Produto/Quantidade
-        JPanel painelProdutoInput = new JPanel(new GridBagLayout());
-        painelProdutoInput.setBackground(CONTENT_BG); // Usa CONTENT_BG da BaseView
-        painelProdutoInput.setBorder(new EmptyBorder(10, 0, 0, 0)); 
-        
-        GridBagConstraints gbcInput = new GridBagConstraints();
-        gbcInput.insets = new Insets(0, 5, 0, 5); gbcInput.anchor = GridBagConstraints.WEST;
-        
-        // 1. Seleção Produto
-        comboProduto = new JComboBox<>(PRODUTOS_PRECOS.keySet().toArray(new String[0]));
-        comboProduto.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gbcInput.gridx = 0; gbcInput.gridy = 0; gbcInput.weightx = 0.5;
-        gbcInput.fill = GridBagConstraints.HORIZONTAL; painelProdutoInput.add(comboProduto, gbcInput);
-        
-        // 2. Preço Unitário
-        lblValorUnitario = new JLabel("R$ 0,00", SwingConstants.RIGHT); 
-        lblValorUnitario.setFont(new Font("SansSerif", Font.BOLD, 14));
-        gbcInput.gridx = 1; gbcInput.gridy = 0; gbcInput.weightx = 0.15;
-        gbcInput.fill = GridBagConstraints.NONE; painelProdutoInput.add(lblValorUnitario, gbcInput);
-        
-        // 3. Quantidade Texto
-        txtQuantidade = new JTextField(5);
-        txtQuantidade.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        txtQuantidade.setHorizontalAlignment(JTextField.RIGHT);
-        gbcInput.gridx = 2; gbcInput.gridy = 0; gbcInput.weightx = 0.15;
-        gbcInput.fill = GridBagConstraints.HORIZONTAL; painelProdutoInput.add(txtQuantidade, gbcInput);
-        
-        // 4. Quantidade Label
-        JLabel lblQtdEmKg = new JLabel("Quantidade em kg", SwingConstants.CENTER);
-        lblQtdEmKg.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        lblQtdEmKg.setForeground(Color.GRAY);
-        gbcInput.gridx = 2; gbcInput.gridy = 1;
-        gbcInput.fill = GridBagConstraints.HORIZONTAL; painelProdutoInput.add(lblQtdEmKg, gbcInput);
-        
-        // 5. Botão Add
-        JButton btnAdd = new JButton("+");
-        btnAdd.setBackground(VERDE_PADRAO); btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFont(new Font("SansSerif", Font.BOLD, 16));
-        btnAdd.setFocusPainted(false);
-        btnAdd.setPreferredSize(new Dimension(40, 30));
-        btnAdd.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        gbcInput.gridx = 3; gbcInput.gridy = 0; gbcInput.weightx = 0.05;
-        gbcInput.fill = GridBagConstraints.NONE; gbcInput.anchor = GridBagConstraints.EAST;
-        gbcInput.insets = new Insets(0, 5, 0, 0); painelProdutoInput.add(btnAdd, gbcInput);
-        
-        gbc.gridy = 3; gbc.insets = new Insets(0, 8, 4, 8); 
-        formCard.add(painelProdutoInput, gbc);
+        JLabel titulo = new JLabel("Itens do Pedido");
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.add(titulo, BorderLayout.NORTH);
 
-        // --- Configuração da Tabela (JTable) ---
-        String[] colunas = {"Produto", "Quantidade (kg)", "Valor Unit. (R$)", "Total (R$)", "Ação"}; 
-        
-        produtosTableModel = new DefaultTableModel(colunas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; 
-            }
-            @Override
-            public Class<?> getColumnClass(int column) {
-                if (column == 4) return JButton.class;
-                return String.class;
-            }
+        itensModel = new DefaultTableModel(new Object[]{
+                "Produto", "Quantidade", "Valor Unitário", "Subtotal"
+        }, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        tabelaProdutos = new JTable(produtosTableModel);
-        tabelaProdutos.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tabelaProdutos.setRowHeight(24);
-        tabelaProdutos.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-        
-        // Define o Renderer (Aparência do Botão) para a coluna 'Ação'
-        tabelaProdutos.getColumn("Ação").setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
-            JButton button = new JButton("Remover");
-            button.setFont(new Font("SansSerif", Font.BOLD, 12));
-            button.setBackground(VERMELHO_ESCURO); 
-            button.setForeground(Color.WHITE);
-            button.setFocusPainted(false);
-            button.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
-            return button;
-        });
+        tabelaItens = new JTable(itensModel);
+        tabelaItens.setRowHeight(28);
 
-        tabelaProdutos.getColumnModel().getColumn(4).setMaxWidth(80); 
-        tabelaProdutos.getColumnModel().getColumn(4).setMinWidth(80);
+        JScrollPane scroll = new JScrollPane(tabelaItens);
+        card.add(scroll, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel criarRodape() {
+        JPanel rodape = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        rodape.setBackground(BG);
+
+        JButton btnSalvar = new JButton("Salvar Pedido");
+        btnSalvar.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btnSalvar.addActionListener(e -> salvarPedido());
+        rodape.add(btnSalvar);
+
+        return rodape;
+    }
+
+    // ---------------- LÓGICA DE NEGÓCIO ----------------
+
+    // Atualiza o campo de valor quando seleciona no combo
+    private void atualizarPreco() {
+        Object item = comboProduto.getSelectedItem();
         
-        // MouseListener para detectar o clique na coluna "Ação"
-        tabelaProdutos.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int column = tabelaProdutos.columnAtPoint(e.getPoint());
-                int row = tabelaProdutos.rowAtPoint(e.getPoint());
-                
-                if (column == tabelaProdutos.getColumnModel().getColumnIndex("Ação") && row >= 0) {
-                    produtosTableModel.removeRow(row);
-                    updateGrandTotal();
-                }
+        // Verifica se o item é realmente um Produto (e não nulo ou string "Selecione...")
+        if (item instanceof ProdutoDAO.Produto) {
+            ProdutoDAO.Produto p = (ProdutoDAO.Produto) item;
+            
+            // Assume que sua classe ProdutoDAO.Produto tem o método getPreco()
+            if (p.getPreco() != null) {
+                campoValorUnitario.setText(p.getPreco().toString());
+            } else {
+                campoValorUnitario.setText("0.00");
             }
-        });
-
-        // Painel para a Tabela e Total
-        JPanel painelTabelaTotal = new JPanel(new BorderLayout());
-        JScrollPane scrollPane = new JScrollPane(tabelaProdutos);
-        
-        scrollPane.setPreferredSize(new Dimension(500, 150)); 
-        painelTabelaTotal.add(scrollPane, BorderLayout.CENTER);
-        
-        // Painel Total (R$ 0,00)
-        JPanel painelTotal = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        painelTotal.setBackground(CONTENT_BG); // Usa CONTENT_BG da BaseView
-        JLabel lblTotalCompra = new JLabel("Total da compra: ");
-        lblTotalCompra.setFont(new Font("SansSerif", Font.BOLD, 16));
-        lblTotalCompra.setForeground(VERDE_PADRAO); 
-        
-        lblTotalItem = new JLabel("R$ 0,00"); 
-        lblTotalItem.setFont(new Font("SansSerif", Font.BOLD, 16));
-        lblTotalItem.setForeground(Color.RED);
-        
-        painelTotal.add(lblTotalCompra);
-        painelTotal.add(lblTotalItem);
-        
-        painelTabelaTotal.add(painelTotal, BorderLayout.SOUTH);
-        
-        gbc.gridy = 4; 
-        gbc.insets = new Insets(0, 8, 12, 8); 
-        formCard.add(painelTabelaTotal, gbc);
-        
-        // --- Listeners ---
-        comboProduto.addActionListener(e -> updateProductPrice());
-        txtQuantidade.addActionListener(e -> addProdutoToTable()); 
-        btnAdd.addActionListener(e -> addProdutoToTable());
-        
-        updateProductPrice();
+        }
     }
-    // --- FIM ADICIONAR SEÇÃO PRODUTO ---
 
-
-    // --- ADICIONAR SEÇÃO ENTREGA (Com espaçamento ajustado) ---
-    private void adicionarSecaoEntrega(JPanel formCard) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 5; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(20, 8, 6, 8); 
-
-        // Usa o método criarHeader da BaseView
-        formCard.add(criarHeader("Selecione a data de entrega"), gbc); 
-
-        JDatePickerImpl datePicker = criarDatePicker();
-        
-        gbc.gridy = 6;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 8, 20, 8); 
-
-        formCard.add(datePicker, gbc);
+    private void carregarAssociados() {
+        var lista = new AssociadoDAO().listarTodos();
+        comboAssociado.removeAllItems();
+        for (var a : lista) comboAssociado.addItem(a);
     }
-    // --- FIM ADICIONAR SEÇÃO ENTREGA ---
-    
-    // --- ADICIONAR SEÇÃO PAGAMENTO (Com espaçamento ajustado) ---
-    private void adicionarSecaoPagamento(JPanel formCard) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 7; 
-        gbc.gridwidth = 2; gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 6, 8);
 
-        // Usa o método criarHeader da BaseView
-        formCard.add(criarHeader("Selecione a forma de pagamento"), gbc);
+    private void configurarProdutor() {
+        comboAssociado.removeAllItems();
+        var dao = new AssociadoDAO();
+        var todos = dao.listarTodos();
+        Long idSessao = SessaoUsuario.getAssociadoId();
 
-        String[] opcoesPagamento = {"Dinheiro", "Pix", "Cartão"};
-        JComboBox<String> comboPagamento = new JComboBox<>(opcoesPagamento);
-        comboPagamento.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        comboPagamento.setSelectedIndex(0);
+        Object selecionado = null;
+        for (var a : todos) {
+            if (a.getId().equals(idSessao)) {
+                selecionado = a;
+                break;
+            }
+        }
+        if (selecionado != null) {
+            comboAssociado.addItem(selecionado);
+            comboAssociado.setSelectedItem(selecionado);
+        }
+        comboAssociado.setEnabled(false);
 
-        gbc.gridy = 8; 
-        gbc.insets = new Insets(0, 8, 20, 8); 
-
-        formCard.add(comboPagamento, gbc);
+        comboProjeto.removeAllItems();
+        comboProjeto.addItem("Sem projeto");
+        comboProjeto.setSelectedIndex(0);
+        comboProjeto.setEnabled(false);
     }
-    // --- FIM ADICIONAR SEÇÃO PAGAMENTO ---
 
+    private void carregarProdutos() {
+        var lista = new ProdutoDAO().listarTodos();
+        comboProduto.removeAllItems();
+        // Dica: Adicione um item vazio ou selecione nulo no inicio para obrigar o usuario a escolher
+        // comboProduto.addItem("Selecione..."); 
+        for (var p : lista) comboProduto.addItem(p);
+        
+        // Força atualizar o preço do primeiro item carregado (se houver)
+        if (!lista.isEmpty()) atualizarPreco();
+    }
 
-    // --- ADICIONAR BOTÃO FINALIZAR ---
-    private void adicionarBotaoFinalizar(JPanel formCard) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 9; 
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(12, 8, 12, 8); 
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        JButton btnFinalizarPedido = new JButton("Finalizar Pedido");
-        btnFinalizarPedido.setBackground(VERDE_PADRAO); 
-        btnFinalizarPedido.setForeground(Color.WHITE);
-        btnFinalizarPedido.setFont(new Font("SansSerif", Font.BOLD, 14));
-        btnFinalizarPedido.setFocusPainted(false);
-        btnFinalizarPedido.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        
-        btnFinalizarPedido.addActionListener(e -> {
-            if (produtosTableModel.getRowCount() == 0) {
-                JOptionPane.showMessageDialog(this, "Adicione pelo menos um produto ao pedido!", "Atenção", JOptionPane.WARNING_MESSAGE);
+    private void carregarProjetos() {
+        var lista = new ProjetoDAO().listarTodos();
+        comboProjeto.removeAllItems();
+        comboProjeto.addItem("Sem projeto");
+        for (var p : lista) comboProjeto.addItem(p.getNomeProjeto());
+    }
+
+    private void adicionarItem() {
+        try {
+            Object itemSelecionado = comboProduto.getSelectedItem();
+            
+            if (itemSelecionado == null || !(itemSelecionado instanceof ProdutoDAO.Produto)) {
+                JOptionPane.showMessageDialog(this, "Selecione um produto válido.");
                 return;
             }
-
-            String projetoSelecionado = (String) comboProjeto.getSelectedItem();
-            String totalPedido = lblTotalItem.getText();
             
-            JOptionPane.showMessageDialog(this, 
-                "Pedido Finalizado com Sucesso!\n\n" +
-                "Projeto: " + projetoSelecionado + "\n" +
-                "Total: " + totalPedido + "\n\n" +
-                "(Aqui chamaremos o Controller para gravar no Postgres)", 
-                "Sucesso", 
-                JOptionPane.INFORMATION_MESSAGE);
+            ProdutoDAO.Produto prod = (ProdutoDAO.Produto) itemSelecionado;
 
-            produtosTableModel.setRowCount(0);
-            updateGrandTotal();
-        });
+            String qtdStr = campoQuantidade.getText().replace(",", ".");
+            String valStr = campoValorUnitario.getText().replace(",", ".");
+            
+            if(qtdStr.isEmpty() || valStr.isEmpty()) {
+                 JOptionPane.showMessageDialog(this, "Preencha quantidade e valor.");
+                 return;
+            }
 
-        formCard.add(btnFinalizarPedido, gbc);
+            BigDecimal qtd = new BigDecimal(qtdStr);
+            BigDecimal unit = new BigDecimal(valStr);
+            BigDecimal subtotal = qtd.multiply(unit);
+
+            ItemPedidoVO item = new ItemPedidoVO();
+            item.setProdutoId(prod.getId());
+            item.setQuantidadeTotal(qtd);
+            item.setValorUnitario(unit);
+            item.setValorTotal(subtotal);
+
+            itensPedido.add(item);
+
+            itensModel.addRow(new Object[]{
+                    prod.getNome(), qtd, unit, subtotal
+            });
+
+            totalPedido = totalPedido.add(subtotal);
+
+            campoQuantidade.setText("");
+            // Opcional: limpar valor unitario ou manter o do produto selecionado
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Valores inválidos. Use ponto para decimais.");
+        }
     }
-    // --- FIM ADICIONAR BOTÃO FINALIZAR ---
-    
-    private JDatePickerImpl criarDatePicker() {
-        UtilDateModel model = new UtilDateModel();
-        
-        Calendar cal = Calendar.getInstance();
-        model.setDate(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
-        model.setSelected(true);
 
-        java.util.Properties p = new java.util.Properties();
-        
-        JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
-        JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
+    private void removerItem() {
+        int row = tabelaItens.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione um item na tabela para remover.");
+            return;
+        }
 
-        datePicker.setPreferredSize(new Dimension(300, 30));
-        
-        return datePicker;
+        ItemPedidoVO item = itensPedido.get(row);
+        totalPedido = totalPedido.subtract(item.getValorTotal());
+
+        itensPedido.remove(row);
+        itensModel.removeRow(row);
     }
 
+    private void voltarParaHome() {
+        String tipo = SessaoUsuario.getTipo();
 
-    public static void main(String[] args){
+        // Verifica quem está logado para abrir a home certa
+        if ("associacao".equalsIgnoreCase(tipo)) {
+            new AssociacaoMainView().setVisible(true);
+        } else {
+            // Assume que é produtor se não for associação
+            new ProdutorMainView().setVisible(true);
+        }
+        
+        // Fecha a tela atual de Criar Pedido
+        dispose();
+    }
+
+    private void salvarPedido() {
+        if (itensPedido.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Adicione ao menos um item ao pedido.");
+            return;
+        }
+
         try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
+            PedidoVO pedido = new PedidoVO();
+            Long associadoId;
+            Long projetoId = null;
+
+            if ("produtor".equalsIgnoreCase(SessaoUsuario.getTipo())) {
+                associadoId = SessaoUsuario.getAssociadoId();
+            } else {
+                AssociadoDAO.Associado assoc = (AssociadoDAO.Associado) comboAssociado.getSelectedItem();
+                if (assoc == null) {
+                    JOptionPane.showMessageDialog(this, "Selecione um associado.");
+                    return;
+                }
+                associadoId = assoc.getId();
+
+                String selProj = (String) comboProjeto.getSelectedItem();
+                if (selProj != null && !"Sem projeto".equals(selProj)) {
+                    // Lógica simples para pegar ID do projeto pelo nome na lista
+                    var projeto = new ProjetoDAO().listarTodos().stream()
+                            .filter(p -> p.getNomeProjeto().equals(selProj))
+                            .findFirst().orElse(null);
+                    if (projeto != null) projetoId = projeto.getId();
                 }
             }
+
+            pedido.setAssociadoId(associadoId);
+            pedido.setProjetoId(projetoId);
+            pedido.setDataCriacao(LocalDateTime.now());
+            pedido.setStatusPedidoId(1L);
+            pedido.setValorTotal(totalPedido);
+            
+            // Adiciona a lista de itens ao VO
+            for (ItemPedidoVO i : itensPedido) pedido.adicionarItem(i);
+
+            PedidoDAO dao = new PedidoDAO();
+            Long id = dao.salvarPedido(pedido);
+
+            if (id != null) {
+                dao.salvarItens(id, itensPedido);
+                JOptionPane.showMessageDialog(this, "Pedido salvo com sucesso!");
+                
+                // --- AQUI ESTÁ A MUDANÇA ---
+                voltarParaHome(); // <--- Chama o método que abre a home
+                // O dispose() antigo sai daqui e vai pra dentro do voltarParaHome
+                
+            } else {
+                JOptionPane.showMessageDialog(this, "Erro ao salvar pedido no banco.");
+            }
+
         } catch (Exception e) {
-            System.out.println("Nimbus não disponível, usando padrão.");
+            // ... (tratamento de erro) ...
         }
-        SwingUtilities.invokeLater(() -> {
-            new CriarPedidoView().setVisible(true);
-        });
     }
 }
